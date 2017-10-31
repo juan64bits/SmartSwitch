@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SmartSwitch en DEVICE_NAME</title>
+	<meta charset='UTF-8'>
+<style>
+body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}
+ input[type=submit],select{display: inline-block;color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:90%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+.buttonOff {display: inline-block;color:white;background-color:red;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:90%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+input[type=submit]:active {background-color:darkblue;transform:translateY(4px);}
+.buttonOff:active {background-color:darkred;transform:translateY(4px);}
+.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}
+.textTime {color:#F8F8FF;font-size:5vw;text-align:left;margin: 0 0;transition-duration:0.4s;}
+.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}
+input[type=password],select {color:#F0F8FF;background-color:black;font-size:5vw;border:none;padding: 10px 10px;border-radius:15px;width:95%;transition-duration:0.4s;}
+input[type=password]:focus{background-color:#2F4F4F;}
+input[type=text],select {color:#F0F8FF;background-color:black;font-size:5vw;border:none;padding: 10px 10px;border-radius:15px;width:95%;transition-duration:0.4s;}
+input[type=text]:focus{background-color:#2F4F4F;}
+
+</style>	
+</head>
+<body>
+	<h1 class='tittles'> Wellcome to SmartSwitch </h1>
+	<p class='textState'>&#9940; WiFi connection failed &#9940; <br> You can change the device information here or reset device to try again. </p>
+	<p class='textState'>&#x23F0; DEVICE WILL AUTO RESET IN FEW MINUTES &#x23F0;</p>
+	<br>
+	<form action='saveNewConfig' method='GET'>
+	  <p class='textTime'> Enter valid SSID: </p>
+	  <input type='text' name='ssid' value='DEVICE_SSID' maxlength='32'>
+	  <p class='textTime'> Enter password: </p>
+	  <input type='password' name='pwd' value='DEVICE_PWD' maxlength='32'>
+	  <p class='textTime'> Enter device name: </p>
+	  <input type='text' name='name' value='DEVICE_NAME' maxlength='32'>
+	  <p class='textTime'> Enter master IP: </p>
+	  <input type='text' name='master' value='MASTER_IP' maxlength='15'>	  
+	  <br><br> 
+	  <input type='submit' value='&#x2714; Submit'>	  
+	</form>	
+	<a href='resetDevice'><button class='buttonOff'>&#8635;Reset</button></a>
+	<p class='textState'>Designed in Colombia, Juan64Bits</p>
+</body>
+</html>

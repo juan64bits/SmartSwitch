@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SmartSwitch en DEVICE_NAME</title>
+	<meta http-equiv='refresh' content='2'; charset='UTF-8'>
+<style>
+body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}
+.buttonHome{color:#F0F8FF;background-color:black;border:none;border-radius:5px;text-decoration:none;text-align: center; ;outline:none;font-size:5vw;width:100%;transition-duration:0.1s;} 
+.buttonHome:active {background-color:darkgray;transform:translateY(2px);}
+.buttonON {display: inline-block;color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+.buttonOff {display: inline-block;color:white;background-color:red;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+.buttonON:active {background-color:darkblue;transform:translateY(4px);}
+.buttonOff:active {background-color:darkred;transform:translateY(4px);}
+.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}
+.textTime {color:#F8F8FF;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}
+.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}
+.buttonTime {color:#F0F8FF;background-color:green;border:none;border-radius:10px;text-decoration:none;outline:none;font-size:4vw;width:10%; margin: 0px 0px 0px 0px;transition-duration:0.1s;padding: 10px 0px;}
+.buttonTime:active {background-color:darkgreen;transform:translateY(2px);}
+</style>	
+</head>
+<body>
+	<a href='http://MASTER_IP'><button class='buttonHome'>Regresar al Men&uacute;</button></a>
+	<h1 class='tittles'> DEVICE_NAME </h1>
+	<a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a>
+	<a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a>
+	<p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p>
+	<p class='textTime'> TIME_OFF </p>	
+	<h1 class='tittles'> Configurar  </h1>
+	<p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p>	
+	<br>
+	<a href='timeSet0'><button class='buttonTime'>&empty;</button></a>
+	<a href='timeSetHalf'><button class='buttonTime'>&#189;</button></a>	
+	<a href='timeSet1'><button class='buttonTime'>1 </button></a>
+	<a href='timeSet5'><button class='buttonTime'> 5 </button></a>	
+	<a href='timeSet10'><button class='buttonTime'>10 </button></a>
+	<a href='timeSet30'><button class='buttonTime'>30</button></a>
+	<a href='timeSet60'><button class='buttonTime'>60</button></a>
+	<a href='timeSet90'><button class='buttonTime'>90</button></a>	
+	<a href='timeSetInf'><button class='buttonTime'>&infin; </button></a>
+	<br>
+	<p class='textTime'>TIME_SET</p>
+</body>
+</html>
