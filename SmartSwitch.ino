@@ -18,7 +18,12 @@
 #define CONFIG_TIME_OUT   120 //seconds
 #define RESET_TIME_OUT    480 //seconds
 #define SSID_AP           "ESP01_ID"
-#define PWD_AP            "adminesp01"    
+#define PWD_AP            "adminesp01"  
+#define BROADCAST_IP      "255.255.255.255"  
+#define MAX_DEVICES       100
+#define DEVICES_REFRESH   1500
+#define DEVICES_TIME_OUT  2000
+
 
 /* DATA FROM FLASH */
 char ssid[33];
@@ -43,12 +48,118 @@ unsigned int timeCount=0;
 unsigned long timeLastReset = 0; //Seconds
 unsigned long timeLoop=0;
 unsigned long timeLoopConnection=0;
+unsigned long timeLoopUDP=0;
 unsigned long timeNow = 0; //Seconds
 unsigned long timeBoot= 0;
 bool firstConnection = true; //Try connection
 bool serverBegan = false;
 bool udpBegan=false;
 bool configMode=false;
+
+/*DEVICES*/
+
+String devicesMAC[MAX_DEVICES]={""};
+String devicesNAME[MAX_DEVICES]={""};
+String devicesIP[MAX_DEVICES]={""};
+String devicesSTATE[MAX_DEVICES]={""};
+unsigned long devicesLASTSEEN[MAX_DEVICES]={0};
+
+void clearDevicesList()
+{
+  for(int i; i< MAX_DEVICES;i++)
+  { 
+      devicesMAC[i]="";
+      devicesNAME[i]="";
+      devicesIP[i]="";   
+      devicesSTATE[i]="";
+      devicesLASTSEEN[i]=0;   
+  }
+}
+
+void printDevicesList()
+{
+  for(int i; i< MAX_DEVICES;i++)
+  { 
+    if(devicesMAC[i]!="")
+      Serial.printf("Device %d: %s,%s,%s [%s] \n", i, devicesMAC[i].c_str(), devicesNAME[i].c_str(),devicesIP[i].c_str(),devicesSTATE[i].c_str());    
+  }
+}
+
+int indexOfMAC(String MAC, int from=0)
+{
+    if(from>=MAX_DEVICES)
+        return -1;
+
+    for(int i=from; i<MAX_DEVICES;i++)
+    {
+      if(MAC.equals(devicesMAC[i]))
+      {    
+            return i;
+      }
+    }
+    
+    return -1;  
+}
+
+
+int addDevice(String MAC, String IP, String NAME, String STATE, unsigned long lastSeen, int index=-1)
+{
+  int indexMac= indexOfMAC(MAC);
+  if(indexMac != -1)
+  {
+      devicesNAME[indexMac]=NAME;
+      devicesIP[indexMac]=IP;
+      devicesSTATE[indexMac]=STATE;
+      devicesLASTSEEN[indexMac]=lastSeen;
+      return 0; // Already exist, updated 
+  }
+  
+  for(int i; i< MAX_DEVICES;i++)
+  { 
+      if(devicesMAC[i]=="") //first empty place
+      {
+        devicesMAC[i]=MAC;
+        devicesNAME[i]=NAME;
+        devicesIP[i]=IP;
+        devicesSTATE[i]=STATE;
+        devicesLASTSEEN[i]=lastSeen; 
+        return 1;
+      }
+  }
+  return -1; //No empty places
+}
+
+void removeDevice(int index)
+{  
+  if(index > 0 && index < MAX_DEVICES)
+  {
+      devicesMAC[index]="";
+      devicesNAME[index]="";
+      devicesIP[index]="";
+      devicesSTATE[index]="";
+  }
+}
+
+
+void purgeDevices()
+{
+    for(int i=1; i<MAX_DEVICES;i++)
+    {
+      if(devicesMAC[i]!="")
+      {
+        if(timeNow-devicesLASTSEEN[i]>DEVICES_TIME_OUT*30)
+        {    
+             removeDevice(i); 
+        }
+        else if(timeNow-devicesLASTSEEN[i]>DEVICES_TIME_OUT)
+        {    
+             devicesSTATE[i]="OFFLINE"; 
+        }
+      }
+    }
+
+}
+
 
 /* ---------------  WEB SERVER and UDP ------------------- */
 WiFiUDP Udp;
@@ -58,9 +169,11 @@ char incomingPacket[255];  // buffer for incoming packets
 WiFiClient espClient;
 ESP8266WebServer server(80);
 
-const String htmlPage = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}.buttonHome{color:#F0F8FF;background-color:black;border:none;border-radius:5px;text-decoration:none;text-align: center; ;outline:none;font-size:5vw;width:100%;transition-duration:0.1s;} .buttonHome:active {background-color:darkgray;transform:translateY(2px);}.buttonON {display: inline-block;color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonOff {display: inline-block;color:white;background-color:red;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonON:active {background-color:darkblue;transform:translateY(4px);}.buttonOff:active {background-color:darkred;transform:translateY(4px);}.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}.buttonTime {color:#F0F8FF;background-color:green;border:none;border-radius:10px;text-decoration:none;outline:none;font-size:4vw;width:10%; margin: 0px 0px 0px 0px;transition-duration:0.1s;padding: 10px 0px;}.buttonTime:active {background-color:darkgreen;transform:translateY(2px);}</style> </head><body><a href='http://MASTER_IP'><button class='buttonHome'>Regresar al Men&uacute;</button></a><h1 class='tittles'> DEVICE_NAME </h1><a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a><a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a><p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p><p class='textTime'> TIME_OFF </p> <h1 class='tittles'> Configurar  </h1><p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p> <br><a href='timeSet0'><button class='buttonTime'>&empty;</button></a><a href='timeSetHalf'><button class='buttonTime'>&#189;</button></a>  <a href='timeSet1'><button class='buttonTime'>1 </button></a><a href='timeSet5'><button class='buttonTime'> 5 </button></a> <a href='timeSet10'><button class='buttonTime'>10 </button></a><a href='timeSet30'><button class='buttonTime'>30</button></a><a href='timeSet60'><button class='buttonTime'>60</button></a><a href='timeSet90'><button class='buttonTime'>90</button></a> <a href='timeSetInf'><button class='buttonTime'>&infin; </button></a><br><p class='textTime'>TIME_SET</p></body></html>";
+const String htmlPage = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}.buttonHome{color:#F0F8FF;background-color:black;border:none;border-radius:5px;text-decoration:none;text-align: center; ;outline:none;font-size:5vw;width:100%;transition-duration:0.1s;} .buttonHome:active {background-color:darkgray;transform:translateY(2px);}.buttonON {display: inline-block;color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonOff {display: inline-block;color:white;background-color:red;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:40%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonON:active {background-color:darkblue;transform:translateY(4px);}.buttonOff:active {background-color:darkred;transform:translateY(4px);}.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}.buttonTime {color:#F0F8FF;background-color:green;border:none;border-radius:10px;text-decoration:none;outline:none;font-size:4vw;width:10%; margin: 0px 0px 0px 0px;transition-duration:0.1s;padding: 10px 0px;}.buttonTime:active {background-color:darkgreen;transform:translateY(2px);}</style> </head><body><a href='http://MASTER_IP'><button class='buttonHome'>Ir a lista de dispositivos</button></a><h1 class='tittles'> DEVICE_NAME </h1><a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a><a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a><p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p><p class='textTime'> TIME_OFF </p> <h1 class='tittles'> Configurar  </h1><p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p> <br><a href='timeSet0'><button class='buttonTime'>&empty;</button></a><a href='timeSetHalf'><button class='buttonTime'>&#189;</button></a>  <a href='timeSet1'><button class='buttonTime'>1 </button></a><a href='timeSet5'><button class='buttonTime'> 5 </button></a> <a href='timeSet10'><button class='buttonTime'>10 </button></a><a href='timeSet30'><button class='buttonTime'>30</button></a><a href='timeSet60'><button class='buttonTime'>60</button></a><a href='timeSet90'><button class='buttonTime'>90</button></a> <a href='timeSetInf'><button class='buttonTime'>&infin; </button></a><br><p class='textTime'>TIME_SET</p></body></html>";
 const String htmlConfig = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}input[type=submit],select{display: inline-block;color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:90%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonOff {display: inline-block;color:white;background-color:red;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:90%;padding: 25px 15px;;margin:0% 0% 5% 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}input[type=submit]:active {background-color:darkblue;transform:translateY(4px);}.buttonOff:active {background-color:darkred;transform:translateY(4px);}.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:5vw;text-align:left;margin: 0 0;transition-duration:0.4s;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}input[type=password],select {color:#F0F8FF;background-color:black;font-size:5vw;border:none;padding: 10px 10px;border-radius:15px;width:95%;transition-duration:0.4s;}input[type=password]:focus{background-color:#2F4F4F;}input[type=text],select {color:#F0F8FF;background-color:black;font-size:5vw;border:none;padding: 10px 10px;border-radius:15px;width:95%;transition-duration:0.4s;}input[type=text]:focus{background-color:#2F4F4F;}</style> </head><body><h1 class='tittles'> Wellcome to SmartSwitch </h1><p class='textState'>&#9940; WiFi connection failed &#9940; <br> You can change the device information here or reset device to try again. </p><p class='textState'>&#x23F0; DEVICE WILL AUTO RESET IN FEW MINUTES &#x23F0;</p><br><form action='saveNewConfig' method='GET'><p class='textTime'> Enter valid SSID: </p><input type='text' name='ssid' value='DEVICE_SSID' maxlength='32'><p class='textTime'> Enter password: </p><input type='password' name='pwd' value='DEVICE_PWD' maxlength='32'><p class='textTime'> Enter device name: </p><input type='text' name='name' value='DEVICE_NAME' maxlength='32'><p class='textTime'> Enter master IP: </p><input type='text' name='master' value='MASTER_IP' maxlength='15'>    <br><br> <input type='submit' value='&#x2714; Submit'>    </form> <a href='resetDevice'><button class='buttonOff'>&#8635;Reset</button></a><p class='textState'>Designed in Colombia, Juan64Bits</p></body></html>";
 const String htmlMsg = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}</style>  </head><body><h1 class='tittles'> &#9888; Warning Message &#9888;</h1><p class='textState'> MESSAGE </p></body></html>";
+const String htmlDevList = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button{display: inline-block;color:white;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:100%; margin-bottom:5px; transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}.buttonHome{background-color:black;border-radius:5px;font-size:5vw;} .ON {background-color:blue;}.OFF {background-color:red;}button:active {background-color:black;transform:translateY(4px);}.tittles {color:#2F4F4F;font-size:6vw;text-align:center;}.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}</style>  </head><body><a href='http://MASTER_IP'><button class='buttonHome'>&#8635; Actualizar lista de dispositivos</button></a><h1 class='tittles'> SmartSwitches Conectados </h1>DEVICES_LIST <br><br><p class='textState'> Este listado se actualiza autm&aacute;ticamente, si un dispositivo conocido ya no aparece debe encenderlo o reiniciarlo.</p></body></html>";
+const String htmlDevices="<a href='http://DEVICE_IP/'> <button class=DEVICE_STATE>DEVICE_NAME</button></a>";
 
 void redirectToRoot() 
 {
@@ -72,7 +185,7 @@ void htmlRoot()
 {
   String rootPage=htmlPage;
   rootPage.replace("DEVICE_NAME",deviceName);
-  rootPage.replace("MASTER_IP",MASTER_IP);  
+  rootPage.replace("MASTER_IP",devicesIP[0]+"/devicesList");  
 
   //Show output state
   if(outputState==outputSet)
@@ -132,7 +245,7 @@ void htmlPageConfig()
 {
   String rootPage=htmlConfig;
   rootPage.replace("DEVICE_SSID",ssid);
-  rootPage.replace("DEVICE_PWD",password);
+  rootPage.replace("DEVICE_PWD",password);  
   rootPage.replace("DEVICE_NAME",deviceName);
   rootPage.replace("MASTER_IP",MASTER_IP); 
   server.send(200, "text/html", rootPage);
@@ -144,6 +257,37 @@ void htmlPageMsg(String msg)
   rootPage.replace("MESSAGE",msg);
   server.send(200, "text/html", rootPage);
 }  
+
+void htmlDevicesList()
+{
+  String rootPage=htmlDevList;
+  rootPage.replace("DEVICE_NAME",deviceName);
+  rootPage.replace("MASTER_IP",devicesIP[0]+"/devicesList"); 
+
+  String rootDevices = "", device="";
+  
+  for(int i; i< MAX_DEVICES;i++)
+  { 
+    if(devicesMAC[i]!="")
+    {
+      device=htmlDevices;
+      device.replace("DEVICE_NAME",devicesNAME[i]);
+      device.replace("DEVICE_IP",devicesIP[i]);
+      if(devicesSTATE[i]=="OFFLINE")
+      {
+        device.replace("DEVICE_STATE","'' disabled");
+      }
+      else
+      {  
+        device.replace("DEVICE_STATE","'" + devicesSTATE[i] + "'");
+      }
+      rootDevices += device;
+    }
+  }  
+
+  rootPage.replace("DEVICES_LIST",rootDevices);  
+  server.send(200, "text/html", rootPage);  
+}
 
 /* ---------------  WEB SERVER ------------------- */
 void hardwareInit()
@@ -267,6 +411,7 @@ void wifiInit()
 void serverInit()
 {
   server.on("/", htmlRoot);
+  server.on("/devicesList", htmlDevicesList);
   server.on("/forceOutputOff", forceOutputOff);
   server.on("/forceOutputOn", forceOutputOn);
   server.on("/timeSet0", timeSet0);
@@ -284,7 +429,7 @@ void serverInit()
 void udpInit()
 {
   Udp.begin(localUdpPort);
-  
+  udpBegan=true;
   Serial.printf("Now listening at IP %s, UDP port %d\n", WiFi.localIP().toString().c_str(), localUdpPort);
 }
 
@@ -303,19 +448,31 @@ void setup()
   timeLoopConnection=timeLoop;
   timeLastReset=timeLoop;
   timeBoot=timeLoop;
+  timeLoopUDP=timeLoop;
+  
   ESP.eraseConfig();  
   WiFi.disconnect();
   WiFi.softAPdisconnect();
   WiFi.setOutputPower(20.5);
   WiFi.persistent(false);
   
-  wifiInit();  
+  wifiInit();    
+}
+
+void sendUdpMessage(String msg, String ip=BROADCAST_IP)
+{
+    Udp.beginPacket(ip.c_str(), localUdpPort);
+    Udp.write(msg.c_str());
+    Udp.endPacket();   
+
+    //Purge device list:
+    purgeDevices();
 }
 
 void udpWriteStatus()
 {
-//       0123456789A
-//STATE="S1,IX,OX,XX";
+    //       0123456789A
+    //STATE="S1,IX,OX,XX";
 
     deviceState = "S1,IX,OX,";
 
@@ -339,7 +496,7 @@ void udpWriteStatus()
 
     long int timeStatus= timeSet - timeCount;
     
-Serial.printf("Time status:%d seconds\n",timeStatus);
+    Serial.printf("Time status:%d seconds\n",timeStatus);
     
     if(timeSet==0)
     {
@@ -361,8 +518,9 @@ Serial.printf("Time status:%d seconds\n",timeStatus);
         deviceState += String(60+timeStatus/60, HEX);
     }
 
-//        0123456789A
-//CONFIG="C1,IX,OX,XX";   
+    //        0123456789A
+    //CONFIG="C1,IX,OX,XX";   
+    
     deviceConfig="C1,IX,OX,";
 
     if(inputEdge)
@@ -402,10 +560,8 @@ Serial.printf("Time status:%d seconds\n",timeStatus);
         
         
     String replyString= deviceMAC + "#ACK#" + deviceState + "#" + deviceType + ":" + deviceConfig + ":" + deviceName;
-    
-    Udp.beginPacket(MASTER_IP, localUdpPort);
-    Udp.write(replyString.c_str());
-    Udp.endPacket();  
+    sendUdpMessage(replyString);
+
 }
 
 void handleOutputActiveLow(bool setTo)
@@ -414,6 +570,7 @@ void handleOutputActiveLow(bool setTo)
     {
       pinMode(OUTPUT_PIN, OUTPUT);
       digitalWrite(OUTPUT_PIN, setTo);
+      devicesSTATE[0]=setTo?"ON":"OFF";
     }
     else //Active low
     {
@@ -426,6 +583,7 @@ void handleOutputActiveLow(bool setTo)
         pinMode(OUTPUT_PIN, OUTPUT); //Set LOW
         digitalWrite(OUTPUT_PIN, LOW);
       }
+      devicesSTATE[0]=setTo?"OFF":"ON";
     }
 }
 
@@ -439,7 +597,7 @@ void timeSet60(){ timeSet=60*60;redirectToRoot();saveConfig();}
 void timeSet90(){ timeSet=60*90;redirectToRoot();saveConfig();}
 void timeSetInf(){ timeSet=MAX_TIME_SET;redirectToRoot();saveConfig();}
 
-void forceOutputOn()
+void forceOutputOn()    
 {
     handleOutputActiveLow( outputSet); 
     outputState = outputSet;
@@ -464,7 +622,7 @@ void loop()
 {
   
     timeNow=millis();
-    if(timeNow-timeLoop>150) //Update states every 100ms
+    if(timeNow-timeLoop>200) //Update states every 200ms
     {            
         bool inputStateNow = digitalRead(INPUT_PIN);
         digitalWrite(LED_PIN,!inputStateNow);
@@ -488,8 +646,14 @@ void loop()
       if(outputState==outputSet  && timeSet>0 ) //timeSet=0 -> Never change
       {
         handleOutputActiveLow( !outputSet);
-        outputState=!outputSet;
+        outputState=!outputSet;        
       }
+    }
+
+    if(timeNow-timeLoopUDP>DEVICES_REFRESH)
+    { 
+      if(udpBegan){ sendUdpMessage("00:00:00:UPD:NOW");}
+      timeLoopUDP=timeNow;
     }
 
     //WEB SERVER HANDLER
@@ -503,35 +667,35 @@ void loop()
         Serial.printf(" CONNECTED -> Init server and udp\n");  
         serverInit();
         udpInit();  
-      }   
+        addDevice(deviceMAC,WiFi.localIP().toString(),deviceName,"ON",timeNow);
+      }      
+      devicesIP[0]=WiFi.localIP().toString();
       // Receive and process data
       int packetSize = Udp.parsePacket();
       if (packetSize)
       {
         // receive incoming UDP packets
-          Serial.printf("Received %d bytes from %s, port %d\n", packetSize, MASTER_IP, Udp.remotePort());
-          int len = Udp.read(incomingPacket, 255);
-          if (len > 0)
-          {
-            incomingPacket[len] = 0;
-          }
-          String msg = String(incomingPacket);
-          Serial.printf("UDP packet contents: %s\n", msg.c_str());
-    
+//Serial.printf("Received %d bytes from %s, port %d\n", packetSize, Udp.remoteIP().toString().c_str(), Udp.remotePort());
+        int len = Udp.read(incomingPacket, 255);
+        if (len > 0)
+        {
+          incomingPacket[len] = 0;
+        }
+        String msg = String(incomingPacket);
+        
+//Serial.printf("UDP packet contents: %s\n", msg.c_str());            
+//Serial.printf("Index of command:%d\n",msg.indexOf("#ACK#"));
+        
         // Only from MASTER
-        if(Udp.remoteIP().toString()==String(MASTER_IP))
+        //if(Udp.remoteIP().toString()==String(MASTER_IP))
         {     
-          Serial.printf("Index of command:%d\n",msg.indexOf(":SET:"));
-          
+
           if(msg.indexOf(":UPD:NOW")==8)
           {
               udpWriteStatus();
           }
           else if(msg.indexOf(":SET:C1,")==8)
           {
-            Serial.printf("Index of input R:%d\n",msg.indexOf("IR"));
-            Serial.printf("Index of input F:%d\n",msg.indexOf("IF"));
-          
             if(msg.indexOf("IR")>=0)
             {
                 inputEdge=true;
@@ -540,10 +704,7 @@ void loop()
             {
                 inputEdge=false;
             }
-            
-            Serial.printf("Index of output H:%d\n",msg.indexOf("OH"));
-            Serial.printf("Index of output L:%d\n",msg.indexOf("OL"));
-            
+                        
             if(msg.indexOf("OH")>=0)
             {
                 outputSet=HIGH;
@@ -555,8 +716,6 @@ void loop()
     
             int timeToSet=-1;
             
-    Serial.printf("Index of last , :%d\n",msg.lastIndexOf(","));
-    
             timeToSet = msg.substring(msg.lastIndexOf(",")+1).toInt();
             if(timeToSet>=0 && timeToSet<= 255)
             {
@@ -593,7 +752,37 @@ void loop()
           else if(msg.indexOf(":SET:CLEAREPROM")==8)
           {
              clearEPROM();
-          }            
+          }          
+          else if(msg.indexOf("#ACK#")>10)
+          {
+              String newDeviceMAC= msg.substring(0,msg.indexOf("#ACK#"));
+              String deviceIP = Udp.remoteIP().toString();
+              String newDeviceName = msg.substring(msg.lastIndexOf(":")+1);
+              String deviceSTATE = "";
+              if(msg.indexOf(",IL,OL,")>0 || msg.indexOf(",IH,OL,")>0)
+              {
+                if(msg.indexOf(",IR,OL,")>0 || msg.indexOf(",IF,OL,")>0)
+                {
+                  deviceSTATE="ON"; 
+                }
+                else if(msg.indexOf(",IR,OH,")>0 || msg.indexOf(",IF,OH,")>0)
+                {
+                  deviceSTATE="OFF";
+                }
+              }
+              else if(msg.indexOf(",IL,OH,")>0 || msg.indexOf(",IH,OH,")>0)
+              {
+                if(msg.indexOf(",IR,OL,")>0 || msg.indexOf(",IF,OL,")>0)
+                {
+                  deviceSTATE="OFF"; 
+                }
+                else if(msg.indexOf(",IR,OH,")>0 || msg.indexOf(",IF,OH,")>0)
+                {
+                  deviceSTATE="ON";
+                }
+              }                
+              addDevice(newDeviceMAC,deviceIP,newDeviceName,deviceSTATE, timeNow);
+          }         
         }
       }
     }
