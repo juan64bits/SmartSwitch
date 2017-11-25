@@ -9,9 +9,10 @@ QT       += core gui network
 QMAKE_CFLAGS +=
 QMAKE_CXXFLAGS +=
 
-INCLUDEPATH += /opt/qtrpi/raspbian/sysroot/usr/include
-DEPENDPATH += /opt/qtrpi/raspbian/sysroot/usr/lib
-QMAKE_LIBS += -lwiringPi
+
+#INCLUDEPATH += /opt/qtrpi/raspbian/sysroot/usr/include
+#DEPENDPATH += /opt/qtrpi/raspbian/sysroot/usr/lib
+#QMAKE_LIBS += -lwiringPi
 
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets

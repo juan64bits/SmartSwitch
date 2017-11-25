@@ -17,9 +17,10 @@ MainWindow::MainWindow(QWidget *parent) :
             ui->style->setCurrentIndex(ui->style->count() - 1);
     }
 
+    /*PI
     wiringPiSetup () ;
     softPwmCreate (29,0,100);
-
+    */
     connect(ui->style, SIGNAL(activated(QString)),
             this, SLOT(styleChanged(QString)));
     connect(ui->pushButton_Pin21,SIGNAL(clicked(bool)),
@@ -38,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->devicesView->setModel(model);
     currentModelIndex=-1;
     udpSocket = new QUdpSocket(this);
+    timerCount=0;
     initUdpSocket();
 
     devicesTimer = new QTimer(this);
@@ -91,7 +93,7 @@ void MainWindow::queryStates()
         QDateTime lastSeen=QDateTime::fromString(
                     getStringModel(i,2),DATE_TIME_FORMAT);
 
-        if(lastSeen.secsTo(currentTime)>1 && getStringModel(i,1)!="OFFLINE")
+        if(lastSeen.secsTo(currentTime)>12 && getStringModel(i,1)!="OFFLINE")
         {
             setStringModel(i, 1, "OFFLINE");        
             if(i==currentModelIndex)
@@ -460,7 +462,9 @@ void MainWindow::pushButton_Pin21_clicked()
 
 void MainWindow::on_dial_2_valueChanged(int value)
 {
+    /*PI
     softPwmWrite (29,value);
+    */
 }
 
 void MainWindow::on_shutdownButton_clicked()

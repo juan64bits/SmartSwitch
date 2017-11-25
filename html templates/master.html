@@ -4,45 +4,73 @@
 	<title>SmartSwitch en DEVICE_NAME</title>
 	<meta http-equiv='refresh' content='2'; charset='UTF-8'>
 <style>
-body{height:2000px;
-	background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}
+	body{
+		height:2000px;
+		background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);
+	}
 
-button{display: inline-block;
-	color:white;
-	border:none;
-	border-radius:10px;
-	text-decoration:none;
-	outline: none;
-	font-size:6vw;
-	width:100%; 
-	margin-bottom:5px; 
-	transition-duration:0.1s;
-	box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);}
+	button{
+		color:white;
+		background-color:blue;
+		border:none;
+		border-radius: 10px;
+		text-decoration:none;
+		outline: none;
+		transition-duration:0.1s;
+		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);	
+	}
+	button:active {
+		background-color:darkred;
+		transform:translateY(4px);
+	}
 
-.buttonHome{background-color:black;border-radius:5px;font-size:5vw;} 
-.ON {background-color:blue;}
-.OFF {background-color:red;}
+	.buttonHome{
+		background-color:darkblue;
+		font-size:4vw;
+		width:80%;
+		padding: 1%;
+		margin:0% 0% 0% 10%;		
+	}
+ 
+	.ON {
+		background-color:blue;
+		font-size:4vw;
+		width:80%;
+		padding: 1%;
+		margin:0.5% 10%;
+	}
+	.OFF {
+		background-color:red;
+		font-size:4vw;
+		width:80%;
+		padding: 1%;
+		margin:0.5% 10%;
+	}
 
-button:active {background-color:black;
-	transform:translateY(4px);}
+	.tittles {
+		color:#2F4F4F;
+		font-size:6vw;
+		text-align:center;
+	}
 
-.tittles {color:#2F4F4F;
-	font-size:6vw;
-	text-align:center;}
-
-.textState {color:#696969;
-	font-size:3vw;
-	text-align:center;
-	margin: 0 0;
-	transition-duration:0.4s;}
+	.textState {
+		color:#696969;
+		font-size:3vw;
+		text-align:center;
+		margin: 0 0;
+		transition-duration:0.4s;
+	}
 
 </style>	
 </head>
 <body>
 	<a href='http://MASTER_IP'><button class='buttonHome'>&#8635; Actualizar lista de dispositivos</button></a>
 	<h1 class='tittles'> SmartSwitches Conectados </h1>
+
 	DEVICES_LIST
+
 	<a href='http://DEVICE_IP/'> <button class='DEVICE_STATE'>DEVICE_NAME</button></a>
+
 	<br><br>
 	<p class='textState'> Este listado se actualiza automáticamente, si algún dispositivo no aparece por favor revice que esté encendido.</p>
 </body>

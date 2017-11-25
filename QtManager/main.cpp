@@ -3,6 +3,8 @@
 
 
 MainWindow *window;
+
+/*PI
 int interruptCounter=0;
 
 void interruptionHanlder(void)
@@ -12,6 +14,7 @@ void interruptionHanlder(void)
      interruptCounter++;
      delay(50);
 }
+*/
 
 int main(int argc, char *argv[])
 {
@@ -21,8 +24,10 @@ int main(int argc, char *argv[])
     window=&w;
     w.show();
 
+    /*PI
     pullUpDnControl(28,PUD_UP);
     wiringPiISR(28,INT_EDGE_RISING,&interruptionHanlder);
+    */
 
     return a.exec();
 }

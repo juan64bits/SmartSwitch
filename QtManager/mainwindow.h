@@ -5,8 +5,7 @@
 #include <QFont>
 #include <QObject>
 #include <QStyle>
-#include <wiringPi.h>
-#include <softPwm.h>
+
 #include "callapp.h"
 #include <QDebug>
 
@@ -14,6 +13,11 @@
 #include <QtNetwork>
 
 #include <QStyleFactory>
+
+/*PI
+#include <wiringPi.h>
+#include <softPwm.h>
+*/
 
 namespace Ui {
 class MainWindow;
@@ -73,9 +77,9 @@ private:
     void executeFiniteCommand(QString command);
 
     //DEVICES and NET//
-    QUdpSocket *udpSocket=0;
+    QUdpSocket *udpSocket;
     QTimer *devicesTimer;
-    int timerCount=0;
+    int timerCount;
     void initUdpSocket();
     void udpTalkTo(QString msg, QHostAddress host=QHostAddress::Null,
                    bool allInterfaces=true);
