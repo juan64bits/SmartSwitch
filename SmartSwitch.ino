@@ -1043,7 +1043,7 @@ void hardwareLoop()
     if(timeNow-timeLoop>200) //Update states every 200ms
     {            
         bool inputStateNow = digitalRead(INPUT_PIN);
-        digitalWrite(LED_PIN,outputState);
+        if(!configMode) digitalWrite(LED_PIN,outputState);
         if(inputStateNow!=inputState)
         {
             if(inputStateNow==inputEdge && timeSet>0) //timeSet=0 -> Never change
@@ -1182,7 +1182,7 @@ void wifiLoop()
           timeLoopConnection=timeNow;          
           timeWifiResetCount++;
           Serial.printf("Reconnect timer: %d s\n",RESET_TIME_OUT-timeWifiResetCount);
-          
+          digitalWrite(LED_PIN,!digitalRead(LED_PIN));
           if(timeWifiResetCount>=RESET_TIME_OUT ) 
           {
             Serial.printf("No reconfigured, attempting to reconnect WiFi.\n");
