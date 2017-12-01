@@ -24,11 +24,13 @@
 	}
 
 	.buttonHome{
+		position:sticky;
+		top:0;
 		background-color:darkblue;
 		font-size:4vw;
-		width:80%;
-		padding: 0%;
-		margin:0% 0% 0% 10%;		
+		width:90%;
+		padding: 1%;
+		margin:0% 0% 0% 5%;		
 	}
 	.buttonON {
 		font-size:6vw;
@@ -76,8 +78,9 @@
 </style>	
 </head>
 <body>
-	<a href='MASTER_IP'><button class='buttonHome'>Ir a lista de dispositivos</button></a>
-	<h1 class='tittles'> DEVICE_NAME </h1>
+	<h1 class='tittles'> SmartSwitch </h1>
+	<a href='MASTER_IP'><button class='buttonHome'>Ir a lista de dispositivos</button></a>	
+	<br><h1 class='tittles'> DEVICE_NAME </h1>
 	<a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a>
 	<a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a>
 	<p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p>
@@ -86,7 +89,6 @@
 	<p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p>	
 	<br>
 	<a href='timeSet0'><button class='buttonTime'>&empty;</button></a>
-	<a href='timeSetHalf'><button class='buttonTime'>&#189;</button></a>	
 	<a href='timeSet1'><button class='buttonTime'>1 </button></a>
 	<a href='timeSet5'><button class='buttonTime'> 5 </button></a>	
 	<a href='timeSet10'><button class='buttonTime'>10 </button></a>
@@ -94,6 +96,7 @@
 	<a href='timeSet60'><button class='buttonTime'>60</button></a>
 	<a href='timeSet90'><button class='buttonTime'>90</button></a>
 	<a href='timeSet120'><button class='buttonTime'>120</button></a>	
+	<a href='timeSet180'><button class='buttonTime'>180</button></a>	
 	<a href='timeSetInf'><button class='buttonTime'>&infin;</button></a>
 	<br>
 	<p class='textTime'>TIME_SET</p>

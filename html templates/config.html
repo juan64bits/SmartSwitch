@@ -8,7 +8,7 @@
 		height:2000px;
 		background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);
 	}	
-	.button {	
+	button,.button{	
 		color:white;
 		background-color:blue;
 		border:none;
@@ -19,12 +19,34 @@
 		width:100%;
 		padding: 5%;				
 		transition-duration:0.1s;
-		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);
 	}
-	.button:active {
+	button:active,.button:active {
 		background-color:darkred;
 		transform:translateY(4px);
 	}
+
+	.buttonSave{
+		position:fixed;
+		bottom:0;
+		right: 0;		
+	}
+
+	.buttonReset{
+		background-color:red;		
+		padding: 2%;
+	}
+
+	.buttonHome{
+		position:sticky;
+		top:0;
+		background-color:darkblue;
+		font-size:4vw;
+		width:90%;
+		padding: 1%;
+		margin:0% 0% 0% 5%;		
+	}
+
 	.textState {
 		color:#696969;
 		font-size:5vw;
@@ -34,7 +56,7 @@
 	}
 	.textTime {
 		color:#F8F8FF;
-		font-size:5vw;
+		font-size:3vw;
 		margin:0;
 		text-align:center;
 	}
@@ -59,7 +81,9 @@
 </style>	
 </head>
 <body>
-	<h1 class='tittles'> Wellcome to SmartSwitch </h1>
+	<h1 class='tittles'> SmartSwitch </h1>
+	<a href='http://DEVICE_IP/'><button class='button buttonHome'>Return to device menu</button></a>
+	<br><br>	
 	<p class='textTime'>&#9940; You can reconfigure the device here &#9940;</p>
 	<p class='textTime'>&#x23F0; AUTORESET IN FEW MINUTES &#x23F0;</p>
 	<form action='saveNewConfig' method='POST'>
@@ -76,19 +100,58 @@
 		<input type='text' name='name' value='DEVICE_NAME' maxlength='32'  pattern='[A-Za-z0-9.-]{4,}'>		
 		<p class='textState'> Enter master IP: </p>
 		<input type='text' name='master' value='MASTER_IP' maxlength='15'>
-		<p class='textState'> Select input/output behavior: </p>
+		<br><br>
+
+		<p class='textState'> Select input/output control: </p>
 		<select name='edge'>
 			<option value='falling' INPUT_FALLING>When input edge falling</option>
 			<option value='rising' INPUT_RISING>When input edge rising</option>
 		</select>
-		<br>
+		<br><br>
 		<select name='output'>
-			<option value='low' OUTPUT_LOW>Set output to low</option>
-			<option value='high' OUTPUT_HIGH>Set output to high</option>
+			<option value='low' OUTPUT_LOW>Set output logical to low</option>
+			<option value='high' OUTPUT_HIGH>Set output logical to high</option>
 		</select>
-		<p class='textState'> Off timer (0 never, 11700 infinite): </p>
+		<br><br>
+		<select name='outputinit'>
+			<option value='true' OUTPUT_EN>Device power-on set output on (ACTIVE)</option>
+			<option value='false' OUTPUT_DIS>Device power-on set output off </option>
+		</select>
+		<br><br>		
+
+		<p class='textState'> Auto-Off timer </p>
 		<input type='number' name='time' value='TIME_SET' min='0' max='11700'>
-		
+		<p class='textTime'>0 : Input control disabled <br> 11700 : Auto-off disabled (max. 194 minutes)</p>		
+		<br>
+
+		<p class='textState'> <b>OTHER CONFIGS: </b></p>
+		<select name='trigger'>
+			<option value='true' TRIGGER_EN>Input edge is a global alarm trigger</option>
+			<option value='false' TRIGGER_DIS>Input edge only affects local outputs</option>
+		</select>
+		<br><br>
+		<select name='httpserver'>
+			<option value='true' HTTP_EN>HTTP server enabled (local access)</option>
+			<option value='false' HTTP_DIS>HTTP server disabled</option>
+		</select>
+		<br><br>
+		<select name='configbutton'>
+			<option value='true' CONFIG_EN>Show config. button on WiFi STA</option>
+			<option value='false' CONFIG_DIS>Config. button only visible on WiFi AP</option>
+		</select>
+		<br><br>		
+		<select name='mqttserver'>
+			<option value='true' MQTT_EN>MQTT server enabled (online access)</option>
+			<option value='false' MQTT_DIS>MQTT server disabled</option>
+		</select>
+		<br><br>
+		<select name='udpserver'>
+			<option value='true' UDP_EN>UDP port enabled (local communication)</option>
+			<option value='false' UDP_DIS>UDP port disabled</option>
+		</select>
+		<br><br>
+
+
 		<p class='tittles'><b>MQTT Configuration:</b></p>
 		<p class='textState'> Enter MQTT server (url or ip): </p>
 		<input type='text' name='server' value='MQTT_SERVER' maxlength='50'>		
@@ -97,7 +160,7 @@
 		<p class='textState'> Enter MQTT username: </p>
 		<input type='text' name='username' value='MQTT_USERNAME' maxlength='32'>
 		<p class='textState'> Enter MQTT password: </p>
-		<input type='password' name='mqttpwd' value='MQTT_PWD' maxlength='32'>
+		<input type='text' name='mqttpwd' value='MQTT_PWD' maxlength='32'>
 		<p class='textState'> Output set topic (to suscribe): </p>
 		<input type='text' name='settopic' value='OUTPUTSET_TOPIC' maxlength='100'>
 		<p class='textState'> Output status topic (to publish): </p>
@@ -116,11 +179,12 @@
 		<input type='text' name='refreshtopic' value='ALL_REFRESH' maxlength='100'>
 
 		<br><br> 
-		<input type='submit' value='&#x2714; Save and connect' class='button'>	  
+		<input type='submit' value='&#x2714; Save and connect' class='button buttonSave'>	  
 	</form>	
 	<br>
-	<a href='resetDevice'><button class='button'>&#8635; Reset device</button></a>
+	<p class='textTime'>Designed in Colombia by <b>Juan64Bits</b></p>
+	<a href='resetDevice'><button class='buttonReset'> &#8635; Ignore and Reset </button></a>
 	<br><br>	
-	<p class='textTime'>Designed in Colombia, <b>Juan64Bits</b></p>
+	
 </body>
 </html>
