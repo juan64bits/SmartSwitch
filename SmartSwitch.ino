@@ -1,15 +1,14 @@
 /* TODO:
- *	-Make DEVICE_NAME & MQTT_USER usable in topics (reduce time to setup the device)
  *  -Save&Load custom UDP port 
- *  -Auto save timer counter ¿?
+ *  -Auto save timer counter <?>
  *  -Ofline/online concurrent fail :(   
- *	-Optimize ram comsuption?
  *  -Custom text for ON / OFF
- *  -Custom text for TIMER / STATE?
+ *  -Custom text for TIMER / STATE <?>
  *  -Migrate to IBM MQTT servers! (secure connection)
  *  -Get time on wifi connection
  *  -Active sensor by daytime option 
  *  -Flash space: universal header/style/script/body/end html
+ *	-Figure out web firmeware updater option <ESP01 can't do it>
  */
 
 /* Misc */
@@ -22,10 +21,10 @@
 /* Basic configuration ESP01 */
 #define INPUT_PIN         3   //RX
 #define LED_PIN           2
-#define GPIO01  		  1   //TX
+#define GPIO01_TX  		  1   //TX
 #define OUTPUT_PIN		  0
 #define MAX_TIME_SET      11700   //seconds
-#define CONFIG_TIME_OUT   10      //seconds
+#define CONFIG_TIME_OUT   120     //seconds
 #define RESET_TIME_OUT    120     //seconds
 #define SSID_AP           "ESP01_ID"
 #define PWD_AP            "adminesp01"  
@@ -218,9 +217,10 @@ void purgeDevices()
 
 void clearEPROM()
 {
-  for(int i=0; i<1024;i++)  
-    EEPROM.write(i,0);
-  EEPROM.commit();  
+	Serial.printf("[%s]Erasing EEPROM...\n",timeToString().c_str());
+	for(int i=0; i<1024;i++)  
+		EEPROM.write(i,0xFF);
+	EEPROM.commit();  
 }
 
 void saveConfig()
@@ -581,12 +581,12 @@ void htmlDevicesList()
 
 void saveNewConfig()
 {
-  if(serverBegan) 
-  {
-      server->arg("ssid").toCharArray(ssid,33);
-      server->arg("pwd").toCharArray(password,33);
-      server->arg("name").toCharArray(deviceName,33);
-      server->arg("master").toCharArray(masterIP,16); 
+	if(serverBegan) 
+	{
+		server->arg("ssid").toCharArray(ssid,33);
+		server->arg("pwd").toCharArray(password,33);
+		server->arg("name").toCharArray(deviceName,33);
+		server->arg("master").toCharArray(masterIP,16); 
       
       if(server->arg("edge")=="falling")
       {
@@ -662,27 +662,54 @@ void saveNewConfig()
         outputInit=false; 
       }         
 
-      timeSet=server->arg("time").toInt();
-    
-      mqttPort=server->arg("port").toInt();
-      server->arg("server").toCharArray(mqttServer,51);
-      server->arg("username").toCharArray(mqttUsername,33);
-      server->arg("mqttpwd").toCharArray(mqttPwd,33);
-      server->arg("settopic").toCharArray(mqttOutputSet,101);
-      server->arg("outtopic").toCharArray(mqttOutputState,101);
-      server->arg("intopic").toCharArray(mqttInputState,101);
-      server->arg("timersettopic").toCharArray(mqttTimerSet,101);
-      server->arg("timertopic").toCharArray(mqttTimerState,101);
-      server->arg("allsettopic").toCharArray(mqttAllSet,101);
-      server->arg("alarmtrigger").toCharArray(mqttAlarmTrigger,101);
-      server->arg("refreshtopic").toCharArray(mqttRefresh,101);  
-                 
-      htmlPageMsg("Data will be saved and device restarted. If the SSID and PASSWORD are correct you will have access on your WiFi network.");
-  }    
-  saveConfig();
-  Serial.printf("[%s]Config. data from web server saved, attempting to reconnect WiFi.\n",timeToString().c_str());
-  
-  tryWifi(); 
+		timeSet=server->arg("time").toInt();
+
+		mqttPort=server->arg("port").toInt();
+		server->arg("server").toCharArray(mqttServer,51);
+		server->arg("username").toCharArray(mqttUsername,33);
+		server->arg("mqttpwd").toCharArray(mqttPwd,33);
+
+		String tempString=server->arg("settopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);
+		tempString.toLowerCase();		
+		tempString.toCharArray(mqttOutputSet,101);
+
+
+		tempString=server->arg("outtopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);
+		tempString.toLowerCase();	
+		tempString.toCharArray(mqttOutputState,101);
+
+		tempString=server->arg("intopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);
+		tempString.toLowerCase();	
+		tempString.toCharArray(mqttInputState,101);
+
+		tempString=server->arg("timersettopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);
+		tempString.toLowerCase();	
+		tempString.toCharArray(mqttTimerSet,101);
+
+		tempString=server->arg("timertopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);
+		tempString.toLowerCase();	
+		tempString.toCharArray(mqttTimerState,101);
+
+		server->arg("allsettopic").toCharArray(mqttAllSet,101);
+		server->arg("alarmtrigger").toCharArray(mqttAlarmTrigger,101);
+		server->arg("refreshtopic").toCharArray(mqttRefresh,101);  
+		         
+		htmlPageMsg("Data will be saved and device restarted. If the SSID and PASSWORD are correct you will have access on your WiFi network.");
+	}
+
+	saveConfig();
+	Serial.printf("[%s]Config. data from web server saved, attempting to reconnect WiFi.\n",timeToString().c_str());
+	tryWifi(); 
 }
 
 void setTimerTo(int value)
@@ -899,7 +926,14 @@ void mqttReportTimeSet()
 void hardwareInit()
 {
 	ESP.eraseConfig();   
-	
+	//Enter in config mode if TX is pulled down
+	pinMode(GPIO01_TX,INPUT);
+	if(digitalRead(GPIO01_TX)==LOW)
+	{
+		configMode=true;
+		while(digitalRead(GPIO01_TX)==LOW){}
+	}
+
 	Serial.begin(115200,SERIAL_8N1,SERIAL_TX_ONLY);
 	Serial.println();			
 
@@ -992,13 +1026,12 @@ void configInit()
   String ssidAP = String(SSID_AP) + deviceMAC;  
   WiFi.softAP(ssidAP.c_str(), PWD_AP);
   deviceIP = WiFi.softAPIP(); 
-  Serial.printf("[%s]Access Point IP: ",timeToString().c_str());
-  Serial.print(deviceIP);
+  Serial.printf("[%s]Access Point IP: %S\n\n",timeToString().c_str(),deviceIP.toString().c_str());
    
   serverInit();   
   addDevice(deviceMAC,deviceIP.toString(),deviceName,"ON",timeNow,0);
     
-  Serial.println(". Now you can configure your device from AP");
+  Serial.printf("[%s]Now you can configure your device from AP",timeToString().c_str());
 }
 
 void mqttInit() 
@@ -1379,28 +1412,34 @@ void wifiLoop()
 /* -----------------------------ARDUINO STYLE-------------------------------- */
 void setup()
 {
-  hardwareInit(); 
-  
-  EEPROM.begin(1024);
-  loadConfig();
 
-  forceOutput(outputInit);
-  
-  Serial.printf("[%s]My MAC: ",timeToString().c_str());
-  deviceMAC=String(WiFi.macAddress());
-  deviceMAC.replace(":","");
-  deviceMAC = deviceMAC.substring(6);
-  Serial.println(deviceMAC); 
+	hardwareInit(); 
 
-  timeLoop=millis();
-  timeLoopConnection=timeLoop;
-  timeWifiResetCount=0;
-  timeLastReset=timeLoop;
-  timeBoot=timeLoop;
-  timeLoopUDP=timeLoop;  
-  timeLoopMQTT=timeLoop;  
+	EEPROM.begin(1024);
+
+	loadConfig();
+
+	forceOutput(outputInit);
+
+	Serial.printf("[%s]My MAC: ",timeToString().c_str());
+	deviceMAC=String(WiFi.macAddress());
+	Serial.println(deviceMAC); 
+
+	deviceMAC.replace(":","");
+	deviceMAC = deviceMAC.substring(6);	
+
+	timeLoop=millis();
+	timeLoopConnection=timeLoop;
+	timeWifiResetCount=0;
+	timeLastReset=timeLoop;
+	timeBoot=timeLoop;
+	timeLoopUDP=timeLoop;  
+	timeLoopMQTT=timeLoop;  
   
-  wifiInit();    
+	if(configMode) 
+		configInit();
+	else
+		wifiInit();
 }
 
 void loop()
