@@ -5,6 +5,8 @@
 #define BROADCAST_PORT      45454
 #define DATE_TIME_FORMAT    "dd/MM/yyyy HH:mm:ss"
 #define TIME_FORMAT         "HH:mm:ss"
+#define CONFIG_FILENAME     "/home/juan64bits/Projects/testing/config"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -29,14 +31,14 @@ MainWindow::MainWindow(QWidget *parent) :
             this,SLOT(cmdButton_clicked()));
 
 /*DEVICES VIEW*/
-    model = new QStandardItemModel(0,5,parent);
-    model->setHeaderData(0, Qt::Horizontal, QObject::tr("Device ID"));
-    model->setHeaderData(1, Qt::Horizontal, QObject::tr("Device IP"));
-    model->setHeaderData(2, Qt::Horizontal, QObject::tr("Last Seen"));
-    model->setHeaderData(3, Qt::Horizontal, QObject::tr("Status"));
-    model->setHeaderData(4, Qt::Horizontal, QObject::tr("Config"));
+    devicesModel = new QStandardItemModel(0,5,parent);
+    devicesModel->setHeaderData(0, Qt::Horizontal, QObject::tr("Device ID"));
+    devicesModel->setHeaderData(1, Qt::Horizontal, QObject::tr("Device IP"));
+    devicesModel->setHeaderData(2, Qt::Horizontal, QObject::tr("Last Seen"));
+    devicesModel->setHeaderData(3, Qt::Horizontal, QObject::tr("Status"));
+    devicesModel->setHeaderData(4, Qt::Horizontal, QObject::tr("Config"));
 
-    ui->devicesView->setModel(model);
+    ui->devicesView->setModel(devicesModel);
     currentModelIndex=-1;
     udpSocket = new QUdpSocket(this);
     timerCount=0;
@@ -45,6 +47,16 @@ MainWindow::MainWindow(QWidget *parent) :
     devicesTimer = new QTimer(this);
     connect(devicesTimer, SIGNAL(timeout()), this, SLOT(queryStates()));
     devicesTimer->start(BROADCAST_REFRESH);
+
+/* DEVICES CONFIG (PLAN) */
+    configModel = new QStandardItemModel(0,5,parent);
+    configModel->setHeaderData(0, Qt::Horizontal, QObject::tr("Device ID"));
+    configModel->setHeaderData(1, Qt::Horizontal, QObject::tr("Device Name"));
+    configModel->setHeaderData(2, Qt::Horizontal, QObject::tr("Width"));
+    configModel->setHeaderData(3, Qt::Horizontal, QObject::tr("Height"));
+    configModel->setHeaderData(4, Qt::Horizontal, QObject::tr("Style"));
+    ui->configView->setModel(configModel);
+    currentConfigModelIndex=-1;
 }
 
 void  MainWindow::initUdpSocket()
@@ -60,27 +72,50 @@ void MainWindow::appendDevice(const QString &id, const QString &ip,
                               const QString &config, int rowIndex)
 {
     if(rowIndex==-1)
-        rowIndex=model->rowCount();
-    model->insertRow(rowIndex);
-    setStringModel(rowIndex, 0, id);
-    setStringModel(rowIndex, 1, ip);
-    setStringModel(rowIndex, 2, last);
-    setStringModel(rowIndex, 3, state);
-    setStringModel(rowIndex, 4, config);
-;
+        rowIndex=devicesModel->rowCount();
+    devicesModel->insertRow(rowIndex);
+    setStringModel(devicesModel,rowIndex, 0, id);
+    setStringModel(devicesModel,rowIndex, 1, ip);
+    setStringModel(devicesModel,rowIndex, 2, last);
+    setStringModel(devicesModel,rowIndex, 3, state);
+    setStringModel(devicesModel,rowIndex, 4, config);
 }
 
 
-void MainWindow::updateDevice(int rowIndex, const QString &ip,
+void MainWindow::updateDevice(const QString &ip,
                               const QString &last, const QString &state,
-                              const QString &config)
+                              const QString &config, int rowIndex)
 {
-    setStringModel(rowIndex, 1, ip);
-    setStringModel(rowIndex, 2, last);
-    setStringModel(rowIndex, 3, state);
-    setStringModel(rowIndex, 4, config);
+    setStringModel(devicesModel,rowIndex, 1, ip);
+    setStringModel(devicesModel,rowIndex, 2, last);
+    setStringModel(devicesModel,rowIndex, 3, state);
+    setStringModel(devicesModel,rowIndex, 4, config);
 }
 
+void MainWindow::appendConfigDevice(const QString &id, const QString &nameD,
+                              const QString &widthD, const QString &heightD,
+                              const QString &styleD, int rowIndex)
+{
+    if(rowIndex==-1)
+        rowIndex=configModel->rowCount();
+    configModel->insertRow(rowIndex);
+    setStringModel(configModel,rowIndex, 0, id);
+    setStringModel(configModel,rowIndex, 1, nameD);
+    setStringModel(configModel,rowIndex, 2, widthD);
+    setStringModel(configModel,rowIndex, 3, heightD);
+    setStringModel(configModel,rowIndex, 4, styleD);
+}
+
+void MainWindow::updateConfig(const QString &id, const QString &nameD,
+                              const QString &widthD, const QString &heightD,
+                              const QString &styleD, int rowIndex)
+{
+    setStringModel(configModel,rowIndex, 0, id);
+    setStringModel(configModel,rowIndex, 1, nameD);
+    setStringModel(configModel,rowIndex, 2, widthD);
+    setStringModel(configModel,rowIndex, 3, heightD);
+    setStringModel(configModel,rowIndex, 4, styleD);
+}
 
 void MainWindow::queryStates()
 {    
@@ -88,14 +123,14 @@ void MainWindow::queryStates()
 
     /*Check connections*/
     QDateTime currentTime= QDateTime::currentDateTime();
-    for(int i=0; i<model->rowCount();i++)
+    for(int i=0; i<devicesModel->rowCount();i++)
     {        
         QDateTime lastSeen=QDateTime::fromString(
-                    getStringModel(i,2),DATE_TIME_FORMAT);
+                    getStringModel(devicesModel,i,2),DATE_TIME_FORMAT);
 
-        if(lastSeen.secsTo(currentTime)>12 && getStringModel(i,1)!="OFFLINE")
+        if(lastSeen.msecsTo(currentTime)>BROADCAST_REFRESH*3 && getStringModel(devicesModel,i,1)!="OFFLINE")
         {
-            setStringModel(i, 1, "OFFLINE");        
+            setStringModel(devicesModel,i, 1, "OFFLINE");
             if(i==currentModelIndex)
                 setDeviceFrameEnabled();
         }
@@ -105,8 +140,8 @@ void MainWindow::queryStates()
 void MainWindow::deviceESP01SendCMD(QString cmd)
 {
     int index = currentModelIndex;
-    QStringList currentConfig = getStringModel(index,4).split(':');
-    QString currentAddress= getStringModel(index,1);
+    QStringList currentConfig = getStringModel(devicesModel,index,4).split(':');
+    QString currentAddress= getStringModel(devicesModel,index,1);
 
     if(currentConfig.at(0)=="ESP01" && currentConfig.size() == 3
             && currentAddress != "IP CONFLICT")
@@ -120,8 +155,8 @@ qDebug() << "sending command" << cmd << " to " << currentAddress;
 void MainWindow::setCurrentDeviceConfig()
 {
     int index = currentModelIndex;
-    QStringList currentConfig = getStringModel(index,4).split(':');
-    QString currentAddress= getStringModel(index,1);
+    QStringList currentConfig = getStringModel(devicesModel,index,4).split(':');
+    QString currentAddress= getStringModel(devicesModel,index,1);
 
     if(currentConfig.at(0)=="ESP01" && currentConfig.size() == 3
             && currentAddress != "IP CONFLICT")
@@ -149,7 +184,7 @@ void MainWindow::setCurrentDeviceConfig()
             //Set and update current device configuration
 qDebug() << "Setting" << newConfig << currentAddress;
             currentConfig.replace(1,newConfig);
-            setStringModel(index, 4,currentConfig.join(':'));
+            setStringModel(devicesModel,index, 4,currentConfig.join(':'));
             udpTalkTo(tr("%1:SET:%2").arg(QTime::currentTime().toString(TIME_FORMAT))
                       .arg(newConfig),QHostAddress(currentAddress));
         }
@@ -157,21 +192,72 @@ qDebug() << "Setting" << newConfig << currentAddress;
 
 }
 
-int MainWindow::indexOfModel(QString string,int columnIndex, int indexFrom)
+int MainWindow::indexOfModel(QStandardItemModel *model, QString string, int columnIndex, int indexFrom)
 {
     if(indexFrom>=model->rowCount())
         return -1;
 
     for(int i=indexFrom; i<model->rowCount();i++)
-        if(getStringModel(i,columnIndex)==string)
+        if(getStringModel(model,i,columnIndex)==string)
             return i;
 
     return -1;
 }
 
+void MainWindow::loadModel(QStandardItemModel *model, QString fileName)
+{
+    QFile file(fileName);
+    if(file.open(QIODevice::ReadOnly))
+    {
+        model->removeRows(0,model->rowCount());
+        QDataStream stream(&file);
+        int rowCount, columnCount;
+        stream >> rowCount;
+        stream >> columnCount;
+
+        for(int row = 0; row < rowCount; row++)
+        {
+            if(model->rowCount()<=row)
+                model->insertRow(row);
+            for(int column = 0; column < columnCount; column++)
+            {
+                QString item;
+                stream >> item;
+                setStringModel(model,row,column,item);
+            }
+        }
+    }
+}
+
+void MainWindow::saveModel(QStandardItemModel *model, QString fileName)
+{
+    QFile file(fileName);
+    if(file.open(QIODevice::WriteOnly))
+    {
+        QDataStream stream(&file);
+        int rowCount = model->rowCount();
+        int columnCount = model->columnCount();
+        stream << rowCount;
+        stream << columnCount;
+
+        for(int row = 0; row < rowCount; row++)
+        {
+            for(int column = 0; column < columnCount; column++)
+            {
+                stream << getStringModel(model,row,column);
+            }
+        }
+    }
+    else
+    {
+        qInfo()<<"Failed opening file to save." << fileName;
+    }
+}
+
+
 void MainWindow::setDeviceFrameEnabled()
 {
-    ui->frameESP01->setEnabled(getStringModel(currentModelIndex,1)!="OFFLINE");
+    ui->frameESP01->setEnabled(getStringModel(devicesModel,currentModelIndex,1)!="OFFLINE");
 }
 
 void MainWindow::updateCurrentDeviceState()
@@ -181,7 +267,7 @@ void MainWindow::updateCurrentDeviceState()
     QString deviceOutputState  = "UNKNOWN";
     QString deviceOutputTimeChange  = "UNKNOWN";
 
-    QList<QString> stateList = getStringModel(currentModelIndex,3).split(',');
+    QList<QString> stateList = getStringModel(devicesModel,currentModelIndex,3).split(',');
     if(stateList.size()==4)
     {
         if(stateList.at(1)=="IH")
@@ -211,9 +297,9 @@ void MainWindow::updateCurrentDeviceConfig()
     QString deviceInputEdge  = "UNKNOWN";
     QString deviceOutputSet  = "UNKNOWN";
     int outputTime=-1;
-    QString deviceMAC = getStringModel(currentModelIndex,0);
+    QString deviceMAC = getStringModel(devicesModel,currentModelIndex,0);
 
-    QList<QString> configSplit = getStringModel(currentModelIndex,4).split(':');
+    QList<QString> configSplit = getStringModel(devicesModel,currentModelIndex,4).split(':');
 
     if(configSplit.size()==3)
     {
@@ -249,14 +335,6 @@ void MainWindow::updateCurrentDeviceConfig()
     ui->comboInput1Edge->setEditText(deviceInputEdge);
     ui->comboOutput2State->setEditText(deviceOutputSet);
     ui->dialOutput2Time->setValue(outputTime);        
-}
-
-void MainWindow::on_devicesView_pressed(const QModelIndex &index)
-{
-    currentModelIndex=index.row();
-    setDeviceFrameEnabled();
-    updateCurrentDeviceState();
-    updateCurrentDeviceConfig();
 }
 
 void MainWindow::getDeviceStringTime(QString &string, short time)
@@ -320,7 +398,7 @@ void MainWindow::processPendingDatagrams()
                                .toString(DATE_TIME_FORMAT);
 
             //Update devices data
-            int macIndex=indexOfModel(hostMAC,0);
+            int macIndex=indexOfModel(devicesModel,hostMAC,0);
             if(macIndex==-1)
             {
                 //New device, append
@@ -328,10 +406,10 @@ void MainWindow::processPendingDatagrams()
             }
             else
             {
-                QString t_hostSTT = getStringModel(macIndex,3);
-                QString t_hostCFG = getStringModel(macIndex,4);
+                QString t_hostSTT = getStringModel(devicesModel,macIndex,3);
+                QString t_hostCFG = getStringModel(devicesModel,macIndex,4);
                 //Device already exists, update
-                updateDevice(macIndex,hostAddress,hostLastSeen,hostSTT,hostCFG);
+                updateDevice(hostAddress,hostLastSeen,hostSTT,hostCFG,macIndex);
 
                 if(macIndex==currentModelIndex)
                 {
@@ -344,12 +422,12 @@ void MainWindow::processPendingDatagrams()
             }
 
             //IP Address List Depuration//
-            int ipIndex=indexOfModel(hostAddress,1);
+            int ipIndex=indexOfModel(devicesModel,hostAddress,1);
             while(ipIndex!=-1)
             {
-                if(getStringModel(ipIndex,0)!= hostMAC)
-                    setStringModel(ipIndex, 1, "IP CONFLICT");
-                ipIndex=indexOfModel(hostAddress,1,ipIndex+1);
+                if(getStringModel(devicesModel,ipIndex,0)!= hostMAC)
+                    setStringModel(devicesModel,ipIndex, 1, "IP CONFLICT");
+                ipIndex=indexOfModel(devicesModel,hostAddress,1,ipIndex+1);
             }
 
             /*TODO: process ACK*/
@@ -479,7 +557,7 @@ void MainWindow::on_rebootButton_clicked()
 
 void MainWindow::on_killmeButton_clicked()
 {
-    executeFiniteCommand("killall -9 test");
+    executeFiniteCommand("killall -9 qSmartSwitch");
 }
 
 void MainWindow::on_dialOutput2Time_sliderMoved(int position)
@@ -531,4 +609,84 @@ void MainWindow::on_buttonESP01RESET_clicked()
 void MainWindow::on_buttonESP01CLEAR_clicked()
 {
     deviceESP01SendCMD("CLEAREPROM");
+}
+
+void MainWindow::on_configView_pressed(const QModelIndex &index)
+{
+    currentConfigModelIndex=index.row();
+}
+
+void MainWindow::on_configView_entered(const QModelIndex &index)
+{
+    currentConfigModelIndex=index.row();
+}
+
+void MainWindow::updateCurrentIndexConfig()
+{
+    QModelIndexList listIndexes = ui->configView->selectionModel()->selection().indexes();
+    if(listIndexes.count()>0)
+        currentConfigModelIndex = listIndexes.first().row();
+    else
+       currentConfigModelIndex=-1;
+}
+
+void MainWindow::on_configView_viewportEntered()
+{
+qInfo()<<"View Entered";
+}
+
+void MainWindow::on_devicesView_pressed(const QModelIndex &index)
+{
+    currentModelIndex=index.row();
+    setDeviceFrameEnabled();
+    updateCurrentDeviceState();
+    updateCurrentDeviceConfig();
+}
+
+
+void MainWindow::on_listSave_clicked()
+{
+    saveModel(configModel,CONFIG_FILENAME);
+}
+
+void MainWindow::on_listLoad_clicked()
+{
+    loadModel(configModel,CONFIG_FILENAME);
+}
+
+void MainWindow::on_listAd_clicked()
+{
+    appendConfigDevice("MAC"+QString::number(configModel->rowCount()),"NAME","100%","100px","border:solid 1px white;");
+}
+
+void MainWindow::on_listDelete_clicked()
+{
+    updateCurrentIndexConfig();
+    if(currentConfigModelIndex>=0)
+    {
+        configModel->removeRow(currentConfigModelIndex);
+    }
+}
+
+
+void MainWindow::on_listUp_clicked()
+{
+    updateCurrentIndexConfig();
+    if(currentConfigModelIndex>0)
+    {
+        QList<QStandardItem*> itemList = configModel->takeRow(currentConfigModelIndex);
+        configModel->insertRow(currentConfigModelIndex-1,itemList);
+        ui->configView->selectRow(currentConfigModelIndex-1);
+    }
+}
+
+void MainWindow::on_listDown_clicked()
+{
+    updateCurrentIndexConfig();
+    if(currentConfigModelIndex<configModel->rowCount()-1 && currentConfigModelIndex != -1)
+    {
+        QList<QStandardItem*> itemList = configModel->takeRow(currentConfigModelIndex);
+        configModel->insertRow(currentConfigModelIndex+1,itemList);
+        ui->configView->selectRow(currentConfigModelIndex+1);
+    }
 }

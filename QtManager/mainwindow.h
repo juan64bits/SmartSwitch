@@ -71,6 +71,24 @@ private slots:
 
     void on_buttonESP01CLEAR_clicked();
 
+    void on_configView_pressed(const QModelIndex &index);
+
+    void on_listSave_clicked();
+
+    void on_listLoad_clicked();
+
+    void on_listAd_clicked();
+
+    void on_listDelete_clicked();
+
+    void on_configView_viewportEntered();
+
+    void on_configView_entered(const QModelIndex &index);
+
+    void on_listUp_clicked();
+
+    void on_listDown_clicked();
+
 private:
     Ui::MainWindow *ui;
     callApp * appRunning;
@@ -87,23 +105,39 @@ private:
     bool validDevice(QStringList msgData);
     void getDeviceStringTime(QString &string, short time);
 
-    QStandardItemModel *model;
+    void updateCurrentIndexConfig();
+
+    QStandardItemModel *devicesModel;
     int currentModelIndex;
 
+    QStandardItemModel *configModel;
+    int currentConfigModelIndex;
 
-    QString getStringModel(int row, int column)
+    QString getStringModel(QStandardItemModel *model, int row, int column)
         {return model->data(model->index(row,column)).toString();}
 
-    void setStringModel(int row, int column, QString string)
+    void setStringModel(QStandardItemModel *model, int row, int column, QString string)
         {model->setData(model->index(row,column),string);}
 
-    int indexOfModel(QString deviceMAC, int columnIndex=0, int indexFrom=0);
+    int indexOfModel(QStandardItemModel *model, QString deviceMAC, int columnIndex=0, int indexFrom=0);
+
+    void loadModel(QStandardItemModel *model, QString fileName);
+    void saveModel(QStandardItemModel *model, QString fileName);
 
     void appendDevice(const QString &id, const QString &ip, const QString &last,
                       const QString &state, const QString &config,
                       int rowIndex=-1);
-    void updateDevice(int rowIndex, const QString &ip,
-                      const QString &last, const QString &state, const QString &config);
+    void updateDevice(const QString &ip, const QString &last, const QString &state,
+                      const QString &config, int rowIndex);
+
+
+    void appendConfigDevice(const QString &id, const QString &nameD,
+                                  const QString &widthD, const QString &heightD,
+                                  const QString &styleD, int rowIndex=-1);
+
+    void updateConfig(const QString &id, const QString &nameD,
+                                  const QString &widthD, const QString &heightD,
+                                  const QString &styleD, int rowIndex);
 
     void setDeviceFrameEnabled();
     void updateCurrentDeviceState();

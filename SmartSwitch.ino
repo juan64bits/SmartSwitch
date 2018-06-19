@@ -1,14 +1,14 @@
 /* TODO:
  *  -Save&Load custom UDP port 
  *  -Auto save timer counter <?>
- *  -Ofline/online concurrent fail :(   
+ *  -Ofline/online concurrent fail (long MQTT timeout) :(   
  *  -Custom text for ON / OFF
  *  -Custom text for TIMER / STATE <?>
  *  -Migrate to IBM MQTT servers! (secure connection)
  *  -Get time on wifi connection
  *  -Active sensor by daytime option 
  *  -Flash space: universal header/style/script/body/end html
- *	-Figure out web firmeware updater option <ESP01 can't do it>
+ *	-Figure out web firmware updater option <ESP01 can't do it>
  */
 
 /* Misc */
@@ -30,8 +30,8 @@
 #define PWD_AP            "adminesp01"  
 #define BROADCAST_IP      "255.255.255.255"  
 #define MAX_DEVICES       25
-#define DEVICES_REFRESH   10000
-#define DEVICES_TIME_OUT  15000
+#define DEVICES_REFRESH   1000
+#define DEVICES_TIME_OUT  1500
 #define MQTT_RECONNECT    10000
 
 #include <ESP8266WiFi.h>
@@ -106,7 +106,7 @@ bool inputState =         false; //Runtime input state
 bool outputState =        LOW;	 //Runtime output state
 
 /*DEVICES INFORMATION ARRAYS*/
-
+/* Feature disabled, not scalable!
 String devicesMAC[MAX_DEVICES]={""};
 String devicesNAME[MAX_DEVICES]={""};
 String devicesIP[MAX_DEVICES]={""};
@@ -212,7 +212,7 @@ void purgeDevices()
     }
 
 }
-
+*/
 /*------------ EPPROM ROUTINES -----------------*/
 
 void clearEPROM()
@@ -320,18 +320,6 @@ void loadConfig()
 	outputSet = 			tbi(configByte1,6);
 	outputInit = 			tbi(configByte1,7);
 
-/*
-  if(char(EEPROM.read(115))=='R')
-    inputEdge=true;
-  if(char(EEPROM.read(115))=='F')
-    inputEdge=false;  
-    
-  if(char(EEPROM.read(116))=='H')
-    outputSet=HIGH;
-  if(char(EEPROM.read(116))=='L')
-    outputSet=LOW;
-*/
-
   timeSetByte=EEPROM.read(117);  
   if(timeSetByte <=60)
   {
@@ -380,10 +368,10 @@ char incomingPacket[90];  // buffer for incoming packets
 std::unique_ptr<ESP8266WebServer> server; 
 
 const char htmlPage[]    	PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button{color:white;background-color:blue;border:none;border-radius: 10px;text-decoration:none;outline: none;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);}button:active {background-color:darkred;transform:translateY(4px);}.buttonHome{position:sticky;top:0;background-color:darkblue;font-size:4vw;width:90%;padding: 1%;margin:0% 0% 0% 5%;}.buttonON {font-size:6vw;width:40%;padding: 5% 5%;margin:5%;}.buttonOff {background-color:red;font-size:6vw;width:40%;padding: 5% 5%;margin:5%;}.buttonTime {background-color:green;font-size:4vw;width: 10%;margin: 0%;padding: 2% 0%;}.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}</style></head><body><h1 class='tittles'> SmartSwitch </h1><a href='MASTER_IP'><button class='buttonHome'>Ir a lista de dispositivos</button></a><br><h1 class='tittles'> DEVICE_NAME </h1><a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a><a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a><p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p><p class='textTime'> TIME_OFF </p><h1 class='tittles'> Configurar  </h1><p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p><br><a href='timeSet0'><button class='buttonTime'>&empty;</button></a><a href='timeSet1'><button class='buttonTime'>1 </button></a><a href='timeSet5'><button class='buttonTime'> 5 </button></a><a href='timeSet10'><button class='buttonTime'>10 </button></a><a href='timeSet30'><button class='buttonTime'>30</button></a><a href='timeSet60'><button class='buttonTime'>60</button></a><a href='timeSet90'><button class='buttonTime'>90</button></a><a href='timeSet120'><button class='buttonTime'>120</button></a><a href='timeSet180'><button class='buttonTime'>180</button></a><a href='timeSetInf'><button class='buttonTime'>&infin;</button></a><br><p class='textTime'>TIME_SET</p><br><br><a href='config'><button class='buttonHome' style='display:CONFIG_MODE;'>&#x2699; Configuraci&oacute;n avanzada ...</button></a></body></html>";
-const char htmlConfig[]    	PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button,.button{color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:100%;padding: 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);}button:active,.button:active {background-color:darkred;transform:translateY(4px);}.buttonSave{position:fixed;bottom:0;right: 0;}.buttonReset{background-color:red;padding: 2%;}.buttonHome{position:sticky;top:0;background-color:darkblue;font-size:4vw;width:90%;padding: 1%;margin:0% 0% 0% 5%;}.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:3vw;margin:0;text-align:center;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}input[type=number],input[type=text],input[type=password],input[type=checkbox],select {color:#F0F8FF;background-color:black;font-size:4vw;border:none;padding: 2.5%;border-radius:15px;width:95%;transition-duration:0.4s;}input:focus,select:focus{background-color:#4F4F5F;}</style></head><body><h1 class='tittles'> SmartSwitch </h1><a href='http://DEVICE_IP/'><button class='button buttonHome'>Return to device menu</button></a><br><br><p class='textTime'>&#9940; You can reconfigure the device here &#9940;</p><p class='textTime'>&#x23F0; AUTORESET IN FEW MINUTES &#x23F0;</p><form action='saveNewConfig' method='POST'><p class='tittles'><b>WiFi Configuration:</b></p><p class='textState'> Enter valid SSID: </p><input type='text' name='ssid' value='DEVICE_SSID' maxlength='32'><p class='textState'> Enter password: </p><input type='password' name='pwd' value='DEVICE_PWD' maxlength='32'><p class='tittles'><b>Device Configuration:</b></p><p class='textState'> Enter device name (Alphanumeric): </p><input type='text' name='name' value='DEVICE_NAME' maxlength='32'  pattern='[A-Za-z0-9.-]{4,}'><p class='textState'> Enter master IP: </p><input type='text' name='master' value='MASTER_IP' maxlength='15'><br><br><p class='textState'> Select input/output control: </p><select name='edge'><option value='falling' INPUT_FALLING>When input edge falling</option><option value='rising' INPUT_RISING>When input edge rising</option></select><br><br><select name='output'><option value='low' OUTPUT_LOW>Set output logical to low</option><option value='high' OUTPUT_HIGH>Set output logical to high</option></select><br><br><p class='textState'> Auto-Off timer </p><input type='number' name='time' value='TIME_SET' min='0' max='11700'><p class='textTime'>0 : Input control disabled <br> 11700 : Auto-off disabled (max. 194 minutes)</p><br><p class='textState'> <b>OTHER CONFIGS: </b></p><select name='trigger'><option value='true' TRIGGER_EN>Input edge is a global alarm trigger</option><option value='false' TRIGGER_DIS>Input edge only affects local outputs</option></select><br><br><select name='httpserver'><option value='true' HTTP_EN>HTTP server enabled (local access)</option><option value='false' HTTP_DIS>HTTP server disabled</option></select><br><br><select name='configbutton'><option value='true' CONFIG_EN>Show config. button on WiFi STA</option><option value='false' CONFIG_DIS>Config. button only visible on WiFi AP</option></select><br><br><select name='mqttserver'><option value='true' MQTT_EN>MQTT server enabled (online access)</option><option value='false' MQTT_DIS>MQTT server disabled</option></select><br><br><select name='udpserver'><option value='true' UDP_EN>UDP port enabled (local communication)</option><option value='false' UDP_DIS>UDP port disabled</option></select><br><br><select name='outputinit'><option value='true' OUTPUT_EN>Device power-on set output on (ACTIVE)</option><option value='false' OUTPUT_DIS>Device power-on set output off </option></select><br><br><p class='tittles'><b>MQTT Configuration:</b></p><p class='textState'> Enter MQTT server (url or ip): </p><input type='text' name='server' value='MQTT_SERVER' maxlength='50'><p class='textState'> Enter MQTT port (numeric): </p><input type='text' name='port' value='MQTT_PORT' maxlength='6' pattern='[0-9]{4,6}'><p class='textState'> Enter MQTT username: </p><input type='text' name='username' value='MQTT_USERNAME' maxlength='32'><p class='textState'> Enter MQTT password: </p><input type='text' name='mqttpwd' value='MQTT_PWD' maxlength='32'><p class='textState'> Output set topic (to suscribe): </p><input type='text' name='settopic' value='OUTPUTSET_TOPIC' maxlength='100'><p class='textState'> Output status topic (to publish): </p><input type='text' name='outtopic' value='OUTPUTSTATUS_TOPIC' maxlength='100'><p class='textState'> Input status topic (to publish): </p><input type='text' name='intopic' value='INPUTSTATUS_TOPIC' maxlength='100'><p class='textState'> Timer set topic (to suscribe): </p><input type='text' name='timersettopic' value='TIMERSET_TOPIC' maxlength='100'><p class='textState'> Timer status topic (to publish): </p><input type='text' name='timertopic' value='TIMER_TOPIC' maxlength='100'><p class='textState'> Set all ligths <B>global</B> topic (to suscribe): </p><input type='text' name='allsettopic' value='ALL_SET' maxlength='100'><p class='textState'> Alarm trigger <B>global</B> topic (to publish): </p><input type='text' name='alarmtrigger' value='ALARM_TRIGGER' maxlength='100'><p class='textState'> Refresh <B>global</B> topic (to suscribe): </p><input type='text' name='refreshtopic' value='ALL_REFRESH' maxlength='100'><br><br> <input type='submit' value='&#x2714; Save and connect' class='button buttonSave'>  </form><br><p class='textTime'>Designed in Colombia by <b>Juan64Bits</b></p><a href='resetDevice'><button class='buttonReset'> &#8635; Ignore and Reset </button></a><br><br></body></html>";
+const char htmlConfig[]    	PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button,.button{color:white;background-color:blue;border:none;border-radius:10px;text-decoration:none;outline: none;font-size:6vw;width:100%;padding: 5%;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);}button:active,.button:active {background-color:darkred;transform:translateY(4px);}.buttonSave{position:fixed;bottom:0;right: 0;}.buttonReset{background-color:red;padding: 2%;}.buttonHome{position:sticky;top:0;background-color:darkblue;font-size:4vw;width:90%;padding: 1%;margin:0% 0% 0% 5%;}.textState {color:#696969;font-size:5vw;text-align:center;margin: 0 0;transition-duration:0.4s;}.textTime {color:#F8F8FF;font-size:3vw;margin:0;text-align:center;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}input[type=number],input[type=text],input[type=password],input[type=checkbox],select {color:#F0F8FF;background-color:black;font-size:4vw;border:none;padding: 2.5%;border-radius:15px;width:95%;transition-duration:0.4s;}input:focus,select:focus{background-color:#4F4F5F;}</style></head><body><h1 class='tittles'> SmartSwitch </h1><a href='http://DEVICE_IP/'><button class='button buttonHome'>Return to device menu</button></a><br><br><p class='textTime'>&#9940; You can reconfigure the device here &#9940;</p><p class='textTime'>DEVICE_MAC</p><form action='saveNewConfig' method='POST'><p class='tittles'><b>WiFi Configuration:</b></p><p class='textState'> Enter valid SSID: </p><input type='text' name='ssid' value='DEVICE_SSID' maxlength='32'><p class='textState'> Enter password: </p><input type='password' name='pwd' value='DEVICE_PWD' maxlength='32'><p class='tittles'><b>Device Configuration:</b></p><p class='textState'> Enter device name (Alphanumeric): </p><input type='text' name='name' value='DEVICE_NAME' maxlength='32'  pattern='[A-Za-z0-9.-]{4,}'><p class='textState'> Enter broadcast IP: </p><input type='text' name='master' value='MASTER_IP' maxlength='15'><br><br><p class='textState'> Select input/output control: </p><select name='edge'><option value='falling' INPUT_FALLING>When input edge falling</option><option value='rising' INPUT_RISING>When input edge rising</option></select><br><br><select name='output'><option value='low' OUTPUT_LOW>Set output logical to low</option><option value='high' OUTPUT_HIGH>Set output logical to high</option></select><br><br><p class='textState'> Auto-Off timer </p><input type='number' name='time' value='TIME_SET' min='0' max='11700'><p class='textTime'>0 : Input control disabled <br> 11700 : Auto-off disabled (max. 194 minutes)</p><br><p class='textState'> <b>OTHER CONFIGS: </b></p><select name='trigger'><option value='true' TRIGGER_EN>Input edge is a global alarm trigger</option><option value='false' TRIGGER_DIS>Input edge only affects local outputs</option></select><br><br><select name='httpserver'><option value='true' HTTP_EN>HTTP server enabled (local access)</option><option value='false' HTTP_DIS>HTTP server disabled</option></select><br><br><select name='configbutton'><option value='true' CONFIG_EN>Show config. button on WiFi STA</option><option value='false' CONFIG_DIS>Config. button only visible on WiFi AP</option></select><br><br><select name='mqttserver'><option value='true' MQTT_EN>MQTT server enabled (online access)</option><option value='false' MQTT_DIS>MQTT server disabled</option></select><br><br><select name='udpserver'><option value='true' UDP_EN>UDP port enabled (local communication)</option><option value='false' UDP_DIS>UDP port disabled</option></select><br><br><select name='outputinit'><option value='true' OUTPUT_EN>Device power-on set output on (ACTIVE)</option><option value='false' OUTPUT_DIS>Device power-on set output off </option></select><br><br><p class='tittles'><b>MQTT Configuration:</b></p><p class='textState'> Enter MQTT server (url or ip): </p><input type='text' name='server' value='MQTT_SERVER' maxlength='50'><p class='textState'> Enter MQTT port (numeric): </p><input type='text' name='port' value='MQTT_PORT' maxlength='6' pattern='[0-9]{4,6}'><p class='textState'> Enter MQTT username: </p><input type='text' name='username' value='MQTT_USERNAME' maxlength='32'><p class='textState'> Enter MQTT password: </p><input type='text' name='mqttpwd' value='MQTT_PWD' maxlength='32'><p class='textState'> Output set topic (to suscribe): </p><input type='text' name='settopic' value='OUTPUTSET_TOPIC' maxlength='100'><p class='textState'> Output status topic (to publish): </p><input type='text' name='outtopic' value='OUTPUTSTATUS_TOPIC' maxlength='100'><p class='textState'> Input status topic (to publish): </p><input type='text' name='intopic' value='INPUTSTATUS_TOPIC' maxlength='100'><p class='textState'> Timer set topic (to suscribe): </p><input type='text' name='timersettopic' value='TIMERSET_TOPIC' maxlength='100'><p class='textState'> Timer status topic (to publish): </p><input type='text' name='timertopic' value='TIMER_TOPIC' maxlength='100'><p class='textState'> Set all ligths <B>global</B> topic (to suscribe): </p><input type='text' name='allsettopic' value='ALL_SET' maxlength='100'><p class='textState'> Alarm trigger <B>global</B> topic (to publish): </p><input type='text' name='alarmtrigger' value='ALARM_TRIGGER' maxlength='100'><p class='textState'> Refresh <B>global</B> topic (to suscribe): </p><input type='text' name='refreshtopic' value='ALL_REFRESH' maxlength='100'><br><br> <input type='submit' value='&#x2714; Save and connect' class='button buttonSave'>  </form><br><p class='textTime'>Designed in Colombia by <b>Juan64Bits</b></p><a href='resetDevice'><button class='buttonReset'> &#8635; Ignore and Reset </button></a><br><br><br><br><br><br><br><br></body></html>";
 const char htmlMsg[]    	PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}.textTime {color:#F8F8FF;font-size:5vw;margin:0;text-align:center;}.tittles {color:#2F4F4F;font-size:8vw;text-align:center;}</style></head><body><h1 class='tittles'> &#9888;Warning Message&#9888;</h1><p class='textTime'> MESSAGE </p></body></html>";
-const char htmlDevList[]    PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button{color:white;background-color:blue;border:none;border-radius: 10px;text-decoration:none;outline: none;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);}button:active {background-color:darkred;transform:translateY(4px);}.buttonHome{position:sticky;top:0;background-color:darkblue;font-size:4vw;width:90%;padding: 1%;margin:0% 0% 0% 5%;} .ON {background-color:blue;font-size:4vw;width:80%;padding: 1%;margin:0.5% 10%;}.OFF {background-color:red;font-size:4vw;width:80%;padding: 1%;margin:0.5% 10%;}.tittles {color:#2F4F4F;font-size:6vw;text-align:center;}.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}</style></head><body><h1 class='tittles'> SmartSwitch </h1><a href='http://MASTER_IP/devicesList'><button class='buttonHome'>&#8635; Actualizar lista de dispositivos</button></a><br><h1 class='tittles'> Dispositivos Conectados: </h1>DEVICES_LIST<br><br><p class='textState'> Este listado se actualiza automáticamente, si algún dispositivo no aparece por favor revice que esté encendido.</p></body></html>";
-const char htmlDevices[]    PROGMEM = "<a href='http://DEVICE_IP/'> <button class=DEVICE_STATE>DEVICE_NAME</button></a>";
+//const char htmlDevList[]    PROGMEM = "<!DOCTYPE html><html><head><title>SmartSwitch en DEVICE_NAME</title><meta http-equiv='refresh' content='2'; charset='UTF-8'><style>body{height:2000px;background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);}button{color:white;background-color:blue;border:none;border-radius: 10px;text-decoration:none;outline: none;transition-duration:0.1s;box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);}button:active {background-color:darkred;transform:translateY(4px);}.buttonHome{position:sticky;top:0;background-color:darkblue;font-size:4vw;width:90%;padding: 1%;margin:0% 0% 0% 5%;} .ON {background-color:blue;font-size:4vw;width:80%;padding: 1%;margin:0.5% 10%;}.OFF {background-color:red;font-size:4vw;width:80%;padding: 1%;margin:0.5% 10%;}.tittles {color:#2F4F4F;font-size:6vw;text-align:center;}.textState {color:#696969;font-size:3vw;text-align:center;margin: 0 0;transition-duration:0.4s;}</style></head><body><h1 class='tittles'> SmartSwitch </h1><a href='http://MASTER_IP/devicesList'><button class='buttonHome'>&#8635; Actualizar lista de dispositivos</button></a><br><h1 class='tittles'> Dispositivos Conectados: </h1>DEVICES_LIST<br><br><p class='textState'> Este listado se actualiza automáticamente, si algún dispositivo no aparece por favor revice que esté encendido.</p></body></html>";
+//const char htmlDevices[]    PROGMEM = "<a href='http://DEVICE_IP/'> <button class=DEVICE_STATE>DEVICE_NAME</button></a>";
 
 void redirectToRoot() 
 {
@@ -400,7 +388,7 @@ void htmlRoot()
   {
       String rootPage=FPSTR(htmlPage);
       rootPage.replace("DEVICE_NAME",deviceName);
-      rootPage.replace("MASTER_IP","devicesList");  
+      rootPage.replace("MASTER_IP",masterIP);  
       rootPage.replace("CONFIG_MODE",configMode||configButtonEnable?"inline-block":"none");
     
       //Show output state
@@ -465,7 +453,8 @@ void htmlPageConfig()
 		String rootPage=FPSTR(htmlConfig);
 		rootPage.replace("DEVICE_SSID",ssid);
 		rootPage.replace("DEVICE_PWD",password);  
-		rootPage.replace("DEVICE_NAME",deviceName); //Moved to finish ( replace variables feature )      
+		rootPage.replace("DEVICE_MAC",String(WiFi.macAddress()));
+		rootPage.replace("DEVICE_NAME",deviceName);
 		rootPage.replace("MASTER_IP",masterIP);
 		rootPage.replace("DEVICE_IP",deviceIP.toString().c_str());
 
@@ -514,21 +503,53 @@ void htmlPageConfig()
 		rootPage.replace("MQTT_SERVER",mqttServer);
 		rootPage.replace("MQTT_PORT",String(mqttPort,DEC));
 
-		rootPage.replace("MQTT_USERNAME",mqttUsername); //Moved to finish ( replace variables feature )
+		rootPage.replace("MQTT_USERNAME",mqttUsername);
 		rootPage.replace("MQTT_PWD",mqttPwd);
-		rootPage.replace("OUTPUTSET_TOPIC",mqttOutputSet);
-		rootPage.replace("OUTPUTSTATUS_TOPIC",mqttOutputState);
-		rootPage.replace("INPUTSTATUS_TOPIC",mqttInputState);  
-		rootPage.replace("TIMERSET_TOPIC",mqttTimerSet);  
-		rootPage.replace("TIMER_TOPIC",mqttTimerState);  
-		rootPage.replace("ALL_SET",mqttAllSet);  
-		rootPage.replace("ALARM_TRIGGER",mqttAlarmTrigger);  
-		rootPage.replace("ALL_REFRESH",mqttRefresh);  
+
+		String tempString=String(mqttOutputSet);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("OUTPUTSET_TOPIC",tempString);
+		
+		tempString=String(mqttOutputState);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("OUTPUTSTATUS_TOPIC",tempString);
+
+		tempString=String(mqttInputState);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("INPUTSTATUS_TOPIC",tempString);  
+
+		tempString=String(mqttTimerSet);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("TIMERSET_TOPIC",tempString);  
+
+		tempString=String(mqttTimerState);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("TIMER_TOPIC",tempString);  
+
+		tempString=String(mqttAllSet);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("ALL_SET",tempString);  
+		
+		tempString=String(mqttAlarmTrigger);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("ALARM_TRIGGER",tempString);  
+		
+		tempString=String(mqttRefresh);
+		tempString.replace(deviceName,"DEVICE_NAME");
+		tempString.replace(mqttUsername,"MQTT_USER");
+		rootPage.replace("ALL_REFRESH",tempString);  
 
 		server->send(200, "text/html", rootPage);      
 		if(!configHasRequests && configMode)
 		{
-		  Serial.printf("[%s]Reconnect timer disabled. Please reset from configuration web page.",timeToString().c_str());
+		  Serial.printf("[%s]Reconnect timer disabled. Please reset from configuration web page.\n",timeToString().c_str());
 		  configHasRequests=true;
 		}
   }
@@ -544,6 +565,7 @@ void htmlPageMsg(String msg)
   }
 }  
 
+/* Feature disabled
 void htmlDevicesList()
 {
   if(serverBegan) 
@@ -578,6 +600,7 @@ void htmlDevicesList()
       server->send(200, "text/html", rootPage);  
   }
 }
+*/
 
 void saveNewConfig()
 {
@@ -671,38 +694,44 @@ void saveNewConfig()
 
 		String tempString=server->arg("settopic");
 		tempString.replace("DEVICE_NAME",deviceName);
-		tempString.replace("MQTT_USER",mqttUsername);
-		tempString.toLowerCase();		
+		tempString.replace("MQTT_USER",mqttUsername);			
 		tempString.toCharArray(mqttOutputSet,101);
 
 
 		tempString=server->arg("outtopic");
 		tempString.replace("DEVICE_NAME",deviceName);
-		tempString.replace("MQTT_USER",mqttUsername);
-		tempString.toLowerCase();	
+		tempString.replace("MQTT_USER",mqttUsername);			
 		tempString.toCharArray(mqttOutputState,101);
 
 		tempString=server->arg("intopic");
 		tempString.replace("DEVICE_NAME",deviceName);
-		tempString.replace("MQTT_USER",mqttUsername);
-		tempString.toLowerCase();	
+		tempString.replace("MQTT_USER",mqttUsername);			
 		tempString.toCharArray(mqttInputState,101);
 
 		tempString=server->arg("timersettopic");
 		tempString.replace("DEVICE_NAME",deviceName);
-		tempString.replace("MQTT_USER",mqttUsername);
-		tempString.toLowerCase();	
+		tempString.replace("MQTT_USER",mqttUsername);			
 		tempString.toCharArray(mqttTimerSet,101);
 
 		tempString=server->arg("timertopic");
 		tempString.replace("DEVICE_NAME",deviceName);
-		tempString.replace("MQTT_USER",mqttUsername);
-		tempString.toLowerCase();	
+		tempString.replace("MQTT_USER",mqttUsername);			
 		tempString.toCharArray(mqttTimerState,101);
 
-		server->arg("allsettopic").toCharArray(mqttAllSet,101);
-		server->arg("alarmtrigger").toCharArray(mqttAlarmTrigger,101);
-		server->arg("refreshtopic").toCharArray(mqttRefresh,101);  
+		tempString=server->arg("allsettopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);			
+		tempString.toCharArray(mqttAllSet,101);
+
+		tempString=server->arg("alarmtrigger");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);			
+		tempString.toCharArray(mqttAlarmTrigger,101);
+		
+		tempString=server->arg("refreshtopic");
+		tempString.replace("DEVICE_NAME",deviceName);
+		tempString.replace("MQTT_USER",mqttUsername);			
+		tempString.toCharArray(mqttRefresh,101);  
 		         
 		htmlPageMsg("Data will be saved and device restarted. If the SSID and PASSWORD are correct you will have access on your WiFi network.");
 	}
@@ -837,7 +866,7 @@ void udpWriteStatus()
         
         
     String replyString= deviceMAC + "#ACK#" + deviceState + "#" + deviceType + ":" + deviceConfig + ":" + deviceName;
-    sendUdpMessage(replyString);
+    sendUdpMessage(replyString,masterIP);
     timeLoopUDP=timeNow;
 }
 
@@ -925,7 +954,6 @@ void mqttReportTimeSet()
 /* ---------------  INIT ROUTINES ------------------- */
 void hardwareInit()
 {
-	ESP.eraseConfig();   
 	//Enter in config mode if TX is pulled down
 	pinMode(GPIO01_TX,INPUT);
 	if(digitalRead(GPIO01_TX)==LOW)
@@ -947,7 +975,7 @@ void hardwareInit()
 }
 
 void tryWifi()
-{
+{	
 	reconfigDevice();
 	Serial.printf("[%s]Reseting global vaiables and reconnecting WiFi\n",timeToString().c_str());
 	serverBegan=false;
@@ -963,18 +991,22 @@ void tryWifi()
 }
 
 void reconfigDevice()
-{      
-  WiFi.disconnect();
-  WiFi.softAPdisconnect();   
-  Serial.printf("[%s]WiFi reconfigured.\n",timeToString().c_str());
+{    
+	WiFi.setOutputPower(20);
+	WiFi.setAutoConnect(false);
+	WiFi.setAutoReconnect(true);
+	WiFi.persistent(false);
+	WiFi.disconnect();
+	WiFi.softAPdisconnect();   
+	Serial.printf("[%s]WiFi reconfigured.\n",timeToString().c_str());
 }
 
 void wifiInit()
-{
-  //reconfigDevice();
-  Serial.printf("[%s]Connecting to [%s][%s] ",timeToString().c_str(), ssid, password);
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);    
+{	
+	Serial.printf("[%s]Connecting to [%s][%s] \n",timeToString().c_str(), ssid, password);
+	WiFi.mode(WIFI_AP_STA);
+	WiFi.begin(ssid, password);
+	//WiFi.waitForConnectResult();	
 }
 
 void serverInit()
@@ -982,7 +1014,7 @@ void serverInit()
   server.reset(new ESP8266WebServer(80));
 
   server->on("/", htmlRoot);
-  server->on("/devicesList", htmlDevicesList);
+  //server->on("/devicesList", htmlDevicesList);
   server->on("/forceOutputOff", forceOutputOff);
   server->on("/forceOutputOn", forceOutputOn);
   server->on("/timeSet0", timeSet0);  
@@ -1026,37 +1058,37 @@ void configInit()
   String ssidAP = String(SSID_AP) + deviceMAC;  
   WiFi.softAP(ssidAP.c_str(), PWD_AP);
   deviceIP = WiFi.softAPIP(); 
-  Serial.printf("[%s]Access Point IP: %S\n\n",timeToString().c_str(),deviceIP.toString().c_str());
+  Serial.printf("[%s]Access Point IP: %s\n",timeToString().c_str(),deviceIP.toString().c_str());
    
   serverInit();   
-  addDevice(deviceMAC,deviceIP.toString(),deviceName,"ON",timeNow,0);
-    
-  Serial.printf("[%s]Now you can configure your device from AP",timeToString().c_str());
+
+  Serial.printf("[%s]Now you can configure your device from AP \n",timeToString().c_str());
 }
 
 void mqttInit() 
 {
     Serial.printf("[%s]Attempting MQTT connection...[%s][%s]\n",timeToString().c_str(),mqttUsername,mqttPwd);
-  
-    espClient.reset(new WiFiClient);
-    client.reset(new PubSubClient(*espClient));
-    client->setServer(mqttServer, mqttPort);
-    client->setCallback(mqttCallback);          
+
+	espClient.reset(new WiFiClient);
+	client.reset(new PubSubClient(*espClient));
+	client->setServer(mqttServer, mqttPort);
+	client->setCallback(mqttCallback);
+
     if (client->connect("",mqttUsername,mqttPwd)) 
     {
-      Serial.printf("[%s]MQTT connected, ready to publish status and suscribe to set outputs.\n",timeToString().c_str());
-      client->subscribe(mqttOutputSet);
-      client->subscribe(mqttTimerSet);
-      client->subscribe(mqttAllSet);
-      client->subscribe(mqttRefresh);
-      mqttBegan=true;
-      mqttReportAll();
+		Serial.printf("[%s]MQTT connected, ready to publish status and suscribe to set outputs.\n",timeToString().c_str());
+		client->subscribe(mqttOutputSet);
+		client->subscribe(mqttTimerSet);
+		client->subscribe(mqttAllSet);
+		client->subscribe(mqttRefresh);
+		mqttBegan=true;
+		mqttReportAll();
     } 
     else 
     {
-      Serial.printf("[%s]MQTT failed, rc=",timeToString().c_str());
-      Serial.print(client->state());
-      Serial.println(", try again.");          
+		Serial.printf("[%s]MQTT failed, rc=",timeToString().c_str());
+		Serial.print(client->state());
+		Serial.println(", try again.");
     }
  
     timeLoopMQTT=timeNow; 
@@ -1111,8 +1143,7 @@ void handleOutputActiveLow(bool setTo)
     if(outputSet) //Active High
     {
       pinMode(OUTPUT_PIN, OUTPUT);
-      digitalWrite(OUTPUT_PIN, setTo);
-      devicesSTATE[0]=setTo?"ON":"OFF";
+      digitalWrite(OUTPUT_PIN, setTo);      
     }
     else //Active low
     {
@@ -1124,8 +1155,7 @@ void handleOutputActiveLow(bool setTo)
       {
         pinMode(OUTPUT_PIN, OUTPUT); //Set LOW
         digitalWrite(OUTPUT_PIN, LOW);
-      }
-      devicesSTATE[0]=setTo?"OFF":"ON";
+      }      
     }
     outputState = setTo;
 }
@@ -1142,6 +1172,7 @@ void parseCommand(String msg)
 {
     if(msg.indexOf("#ACK#")>4)
     {
+      /* Feature disabled !!! Not scalable :(
         String newDeviceMAC= msg.substring(0,msg.indexOf("#ACK#"));
         String newDeviceIP = Udp->remoteIP().toString();
         String newDeviceName = msg.substring(msg.lastIndexOf(":")+1);
@@ -1168,7 +1199,8 @@ void parseCommand(String msg)
             newDeviceSTATE="ON";
           }
         }                
-        addDevice(newDeviceMAC,newDeviceIP,newDeviceName,newDeviceSTATE, timeNow);             
+        addDevice(newDeviceMAC,newDeviceIP,newDeviceName,newDeviceSTATE, timeNow);     
+        */        
     }
     else if(msg.indexOf(":UPD:NOW")!=-1)
     {
@@ -1263,17 +1295,10 @@ void hardwareLoop()
         timeCount=(timeNow-timeLastReset)/1000;
         if(timeCount>=timeSet && timeSet<MAX_TIME_SET) //timeSet==MAX -> Always set. 
         {
-          if(outputState==outputSet  && timeSet>0 ) //timeSet=0 -> Never change
-          {
-            forceOutput(false);                  
-          }
-          /*
-          if(timeLastCount!=timeCount)
-          {
-            printf("Auto-off timer [%d]seconds\n",timeCount);
-            timeLastCount=timeCount;
-          }
-          */
+			if(outputState==outputSet  && timeSet>0 ) //timeSet=0 -> Never change
+			{
+				forceOutput(false);
+			}
         }
     }   
 }
@@ -1285,9 +1310,7 @@ void udpLoop()
       {                 
           if(timeNow-timeLoopUDP>DEVICES_REFRESH)
           { 
-              udpWriteStatus();
-              //Purge device list:
-              purgeDevices();      
+              udpWriteStatus();     
           }
           // Receive and process data
           int packetSize = Udp->parsePacket();
@@ -1300,7 +1323,7 @@ void udpLoop()
               incomingPacket[len] = 0;
             }
             // Only from MASTER
-            //if(Udp->remoteIP().toString()==String(masterIP))
+            if(Udp->remoteIP().toString()==String(masterIP))
             {     
               parseCommand(String(incomingPacket));                     
             }
@@ -1350,73 +1373,75 @@ void wifiLoop()
     // WiFi loop
     if(WiFi.status() == WL_CONNECTED)
     {
-      if(firstConnection)
-      {
-        firstConnection = false;
-        deviceIP= WiFi.localIP();
-        devicesIP[0]=deviceIP.toString();
-        Serial.printf("\n[%s]WIFI CONNECTED, configuring device...\n",timeToString().c_str());  
+		if(firstConnection)
+		{
+			firstConnection = false;
+			deviceIP= WiFi.localIP();			
+			Serial.printf("[%s]WIFI CONNECTED, configuring device...\n",timeToString().c_str());  
 
-        if(mqttServerEnable) mqttInit();
-        if(httpServerEnable) serverInit();
-        if(udpPortEnable) udpInit();  
-        
-        addDevice(deviceMAC,deviceIP.toString(),deviceName,"ON",timeNow,0);        
-      }       
+			if(mqttServerEnable) mqttInit();
+			if(httpServerEnable) serverInit();
+			if(udpPortEnable) udpInit();        
+		}       
 
-      if(udpPortEnable) udpLoop();
-      if(mqttServerEnable) mqttLoop();    
-      timeLoopConnection=timeNow; //last connection          
+		if(udpPortEnable) udpLoop();
+		if(mqttServerEnable) mqttLoop();    
+		timeLoopConnection=timeNow; //last connection          
     }
     else if(firstConnection && ((timeNow-timeBoot)/1000) > CONFIG_TIME_OUT && !configMode)
     {
-      configMode=true;
-      Serial.printf("\n[%s]WIFI connection FAILED -> Init configuration server on AP mode.\n",timeToString().c_str());
-      configInit();      
+		configMode=true;
+		timeWifiResetCount=0;
+		Serial.printf("[%s]WIFI connection FAILED -> Init configuration server on AP mode.\n",timeToString().c_str());
+		configInit();      
     }  
     else if(firstConnection && !configMode)
     {
-      if(timeNow-timeLoopConnection>1000)
-      {
-          Serial.printf(".");
-          timeLoopConnection=timeNow;
-      }
+		if(timeNow-timeLoopConnection>1000)
+		{
+			timeWifiResetCount++;
+			Serial.printf("[%s]Wifi connection timer: %d s\n",timeToString().c_str(),CONFIG_TIME_OUT-timeWifiResetCount);
+			timeLoopConnection=timeNow;
+			//wifiInit();
+		}
     }  
     else if(configMode)
     {   
        
       if(timeNow-timeLoopConnection>1000 && !configHasRequests)
       {                    
-          timeLoopConnection=timeNow; 
-          timeWifiResetCount++;
-          Serial.printf("[%s]Reconnect timer: %d s\n",timeToString().c_str(),RESET_TIME_OUT-timeWifiResetCount);
-          digitalWrite(LED_PIN,!digitalRead(LED_PIN));
-          if(timeWifiResetCount>=RESET_TIME_OUT ) 
-          {
-            Serial.printf("[%s]No reconfigured, attempting to reconnect WiFi.\n",timeToString().c_str());
-            tryWifi();             
-          }
+		timeLoopConnection=timeNow; 
+		timeWifiResetCount++;
+		Serial.printf("[%s]Reset connection timer: %d s\n",timeToString().c_str(),RESET_TIME_OUT-timeWifiResetCount);
+		digitalWrite(LED_PIN,!digitalRead(LED_PIN));
+		if(timeWifiResetCount>=RESET_TIME_OUT )
+		{
+			Serial.printf("[%s]No reconfigured, attempting to reconnect WiFi.\n",timeToString().c_str());
+			tryWifi();             
+		}
       }
       
     }
     else
     {
-      if(timeNow-timeLoopConnection>5000)
-      {                    
-          Serial.printf("[%s]Wifi connection losed, attempting to reconnect WiFi.\n",timeToString().c_str());
-          tryWifi();
-      }
+		if(timeNow-timeLoopConnection>5000)
+		{                    
+			Serial.printf("[%s]Wifi connection losed, attempting to reconnect WiFi.\n",timeToString().c_str());
+			tryWifi();
+		}
     }         
 }
 
 /* -----------------------------ARDUINO STYLE-------------------------------- */
 void setup()
 {
+	ESP.eraseConfig();
+	reconfigDevice(); 
 
 	hardwareInit(); 
 
 	EEPROM.begin(1024);
-
+	//clearEPROM();
 	loadConfig();
 
 	forceOutput(outputInit);
@@ -1443,10 +1468,8 @@ void setup()
 }
 
 void loop()
-{	
+{		
     hardwareLoop();
-
-    if(httpServerEnable) serverLoop();
-
-    wifiLoop();      
+	wifiLoop();
+    if(httpServerEnable) serverLoop();         
 }

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>SmartSwitch</title>
+	<meta http-equiv='refresh' content='1'; charset='UTF-8'>
+</head>
+<style>
+	button{
+		color:white;
+		background-color:blue;
+		border:none;
+		border-radius: 10px;		
+		outline: none;
+		transition-duration:0.1s;
+		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);	
+	}
+	button:active {
+		background-color:darkred;
+		transform:translateY(4px);
+	}
+	button:disabled {
+		background-color:antiquewhite;
+		color:azure;
+	}	
+ 
+	.tittles {
+		color:#2F4F4F;
+		font-size:6vw;
+		text-align:center;
+	}
+
+	.textState {
+		display:inline-block;
+		color:#696969;
+		font-size:4vw;
+		text-align:center;
+		margin: 5% 2%;
+		transition-duration:0.4s;
+	}
+
+	.buttonNameOn {
+		float: right;
+		background-color:blue;
+		font-size:5vw;
+		width:65%;
+		margin: 1% 0%;
+		padding: 0%;
+	}
+
+	.buttonNameOff {
+		float: right;
+		background-color:red;
+		font-size:5vw;
+		width:65%;
+		margin: 1% 0%;
+		padding: 0%;
+	}	
+
+	.buttonON {
+		float: left;
+		background-color:blue;
+		font-size:5vw;
+		width:12%;
+		margin: 1% 0%;
+		padding: 0% ;
+	}
+	.buttonOFF {
+		float: left;
+		background-color:red;
+		font-size:5vw;
+		width:12%;
+		margin: 1% 0%;
+		padding: 0% ;
+	}	
+</style>
+<body>
+		<h1 class='tittles'> Dispositivos Conectados: </h1>
+
+		<a href='http://DEVICE_IP/forceOutputOn' target='hiddenFrame'> <button class='buttonON' DEVICE_ONLINE>On</button></a>
+		<a href='http://DEVICE_IP/forceOutputOff' target='hiddenFrame'> <button class='buttonOFF' DEVICE_ONLINE>Off</button></a>
+		<a href='http://DEVICE_IP/' target='hiddenFrame'> <button class='buttonNameOn' DEVICE_ONLINE>DEVICE_NAME</button></a>
+
+		<a href='http://DEVICE_IP/forceOutputOn'> <button class='buttonON' disabled>On</button></a>
+		<a href='http://DEVICE_IP/forceOutputOff'> <button class='buttonOFF' disabled>Off</button></a>
+		<a href='http://DEVICE_IP/'> <button class='buttonNameOn' disabled>DEVICE_NAME</button></a>
+
+		<a href='http://DEVICE_IP/forceOutputOn'> <button class='buttonON' DEVICE_ONLINE>On</button></a>
+		<a href='http://DEVICE_IP/forceOutputOff'> <button class='buttonOFF' DEVICE_ONLINE>Off</button></a>
+		<a href='http://DEVICE_IP/'> <button class='buttonNameOff' DEVICE_ONLINE>DEVICE_NAME</button></a>
+		
+		<p class='textState'> Éste listado se actualiza automáticamente. </p>
+		<iframe style='display: none' name='hiddenFrame'></iframe>
+</body>
+</html>		
