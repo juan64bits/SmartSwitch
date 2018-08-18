@@ -6,7 +6,7 @@
 </head>
 <style>
 	body{
-		height:2000px;
+		height:1700px;
 		background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);
 	}
 
@@ -24,21 +24,21 @@
 	    box-shadow: none;
 	}
 
-	.active, .collapsible:hover {
+	.collapsible:hover {
 	    background-color: #555;
-	    transition-duration: 0.3s;
+	    transition-duration: 0.1s;
 	}
 
 	.content {
 	    padding: 0 18px;
-	    display: none;
+	    display: block;
 	    overflow: hidden;
 	    border: solid;	
 	    border-width: 2px;
 	    border-color: gray;
 	    border-radius: 5px;
-	    height: 300px; 
-	    transition-duration: 1s;   
+	    height:650px; 	    
+	    transition-duration: 0.3s;   
 	    padding: 3px;
 	    margin: 0;
 	}	
@@ -48,28 +48,18 @@
 		font-size:6vw;
 		text-align:center;
 	}
-
-	.textState {
-		display:inline-block;
-		color:#696969;
-		font-size:4vw;
-		text-align:center;
-		margin: 5% 2%;
-		transition-duration:0.4s;
-	}
-
 </style>	
 </head>
 <body>
-	<button class='collapsible'>Lista de dispositivos</button>
-	<div class='content'>	
-		<iframe src='deviceslist.html' style='border:none; height: 100%;'></iframe>
-	</div>
-
+	<p class="tittles">&#9881 Smart Home &#9881</p>
 	<button class='collapsible'>Plano de luces</button>
 	<div class='content'>	
-		<iframe src='plan.html' style='border:none; height: 100%;'></iframe>
+		<iframe src='plan.html' style='border:none; height: 100%; width: 100%;'></iframe>
 	</div>		
+	<button class='collapsible'>Lista de dispositivos</button>
+	<div class='content'>	
+		<iframe src='deviceslist.html' style='border:none; height: 100%; width: 100%;'></iframe>
+	</div>	
 </body>
 
 <script>
@@ -77,15 +67,18 @@ var coll = document.getElementsByClassName("collapsible");
 var i;
 
 for (i = 0; i < coll.length; i++) {
-    coll[i].addEventListener('click', function() {
-        this.classList.toggle('active');
-        var content = this.nextElementSibling;
-        if (content.style.display === 'block') {
-            content.style.display = 'none';
-        } else {
-            content.style.display = 'block';
-        }
-    });
+    coll[i].addEventListener('click', 
+    	function() 
+    	{        
+	        var content = this.nextElementSibling;
+	        if (content.style.height == '0px') 
+	        {
+	            content.style.height = '650px';
+	        } else {
+	            content.style.height = '0px';
+	        }
+    	}
+    );
 }
 </script>
 

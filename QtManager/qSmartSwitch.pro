@@ -23,10 +23,12 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    callapp.cpp
+    callapp.cpp \
+    ComboBoxDelegate.cpp
 
 HEADERS  += mainwindow.h \
-    callapp.h
+    callapp.h \
+    ComboBoxDelegate.h
 
 FORMS    += mainwindow.ui
 

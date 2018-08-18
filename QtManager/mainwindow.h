@@ -1,12 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-
+#include "ui_mainwindow.h"
 #include <QMainWindow>
 #include <QFont>
 #include <QObject>
 #include <QStyle>
 
 #include "callapp.h"
+#include "ComboBoxDelegate.h"
+
 #include <QDebug>
 
 #include <QStandardItemModel>
@@ -89,6 +91,18 @@ private slots:
 
     void on_listDown_clicked();
 
+    void on_listSaveD_clicked();
+
+    void on_listLoadD_clicked();
+
+    void on_listDeleteD_clicked();
+
+    void on_devicesHTML_clicked();
+
+    void on_listClone_clicked();
+
+    void on_configView_doubleClicked(const QModelIndex &index);
+
 private:
     Ui::MainWindow *ui;
     callApp * appRunning;
@@ -105,7 +119,7 @@ private:
     bool validDevice(QStringList msgData);
     void getDeviceStringTime(QString &string, short time);
 
-    void updateCurrentIndexConfig();
+    int getCurrentModelIndex(QTableView *tableView);
 
     QStandardItemModel *devicesModel;
     int currentModelIndex;
@@ -130,7 +144,7 @@ private:
     void updateDevice(const QString &ip, const QString &last, const QString &state,
                       const QString &config, int rowIndex);
 
-
+    QString getDeviceState(int row);
     void appendConfigDevice(const QString &id, const QString &nameD,
                                   const QString &widthD, const QString &heightD,
                                   const QString &styleD, int rowIndex=-1);
@@ -143,6 +157,13 @@ private:
     void updateCurrentDeviceState();
     void updateCurrentDeviceConfig();
     void deviceESP01SendCMD(QString cmd);
+
+    QString loadTextFile(QString fileName);
+    int saveTextFile(QString text, QString fileName);
+
+    void updateDevicesListHtml();
+    void updateDelegateDevicesList();
+    ComboBoxDelegate* delegate;
 };
 
 #endif // MAINWINDOW_H

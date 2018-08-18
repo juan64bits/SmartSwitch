@@ -33,17 +33,17 @@
 		margin:0% 0% 0% 5%;		
 	}
 	.buttonON {
-		font-size:6vw;
+		font-size:5vw;
 		width:40%;
-		padding: 5% 5%;
-		margin:5%;
+		padding: 2% 2%;
+		margin:2% 5%;
 	}
 	.buttonOff {
 		background-color:red;
-		font-size:6vw;
+		font-size:5vw;
 		width:40%;
-		padding: 5% 5%;
-		margin:5%;
+		padding: 2% 2%;
+		margin:2% 5%;
 	}	
 	.buttonTime {		
 		background-color:green;		
@@ -59,7 +59,7 @@
 		color:#696969;
 		font-size:5vw;
 		text-align:center;
-		margin: 0 0;
+		margin: 1% 0;
 		transition-duration:0.4s;
 	}
 
@@ -78,14 +78,13 @@
 </style>	
 </head>
 <body>
-	<h1 class='tittles'> SmartSwitch </h1>
-	<a href='MASTER_IP'><button class='buttonHome'>Ir a lista de dispositivos</button></a>	
-	<br><h1 class='tittles'> DEVICE_NAME </h1>
+	<button onclick='goBack()' class='buttonHome'> &#8656 Regresar a lista de dispositivos </button>		
+	<h1 class='textState'> DEVICE_NAME </h1>
 	<a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a>
 	<a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a>
 	<p class='textState'> SmartSwitch <b> OUTPUT_STATE </b></p>
 	<p class='textTime'> TIME_OFF </p>	
-	<h1 class='tittles'> Configurar  </h1>
+	<h1 class='textState'> &#9874 CONFIGURAR &#9874  </h1>
 	<p class='textTime'> Seleccione cuantos minutos se mantendr&aacute; encendido: </p>	
 	<br>
 	<a href='timeSet0'><button class='buttonTime'>&empty;</button></a>
@@ -98,9 +97,14 @@
 	<a href='timeSet120'><button class='buttonTime'>120</button></a>	
 	<a href='timeSet180'><button class='buttonTime'>180</button></a>	
 	<a href='timeSetInf'><button class='buttonTime'>&infin;</button></a>
-	<br>
+	
 	<p class='textTime'>TIME_SET</p>
-	<br><br>
+	<br>
 	<a href='config'><button class='buttonHome' style='display:CONFIG_MODE;'>&#x2699; Configuraci&oacute;n avanzada ...</button></a>
 </body>
+<script>
+function goBack() {
+    window.history.back();
+}
+</script>
 </html>

@@ -1,5 +1,8 @@
 QtManager/qSmartSwitch.pro.user
-build-qSmartSwitch-raspbian-jessie-Debug
-build-qSmartSwitch-raspbian-jessie-Release
 build-qSmartSwitch-Desktop-Release
+build-qSmartSwitch-Desktop-Debug
+build-qSmartSwitch-Qt_rpi_5_7_0-Release
+build-qSmartSwitch-Qt_rpi_5_7_0-Debug
 data
+config
+devices

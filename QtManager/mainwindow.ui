@@ -1635,7 +1635,7 @@
       <property name="geometry">
        <rect>
         <x>423</x>
-        <y>100</y>
+        <y>130</y>
         <width>51</width>
         <height>27</height>
        </rect>
@@ -1653,7 +1653,7 @@
       <property name="geometry">
        <rect>
         <x>423</x>
-        <y>130</y>
+        <y>230</y>
         <width>51</width>
         <height>27</height>
        </rect>
@@ -1671,7 +1671,7 @@
       <property name="geometry">
        <rect>
         <x>422</x>
-        <y>160</y>
+        <y>260</y>
         <width>51</width>
         <height>27</height>
        </rect>
@@ -1685,6 +1685,42 @@
        <string>Load...</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="listClone">
+      <property name="geometry">
+       <rect>
+        <x>423</x>
+        <y>100</y>
+        <width>51</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Clone</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="devicesHTML">
+      <property name="geometry">
+       <rect>
+        <x>423</x>
+        <y>175</y>
+        <width>51</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>HTML</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_6">
      <attribute name="title">
@@ -1695,8 +1731,8 @@
        <rect>
         <x>0</x>
         <y>0</y>
-        <width>240</width>
-        <height>290</height>
+        <width>251</width>
+        <height>261</height>
        </rect>
       </property>
       <property name="font">
@@ -2198,6 +2234,60 @@
         <string>CLR EPROM</string>
        </property>
       </widget>
+     </widget>
+     <widget class="QPushButton" name="listSaveD">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>260</y>
+        <width>51</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Save...</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="listLoadD">
+      <property name="geometry">
+       <rect>
+        <x>50</x>
+        <y>260</y>
+        <width>51</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Load...</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="listDeleteD">
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>260</y>
+        <width>51</width>
+        <height>27</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>Delete</string>
+      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="tab_7">
