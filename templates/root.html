@@ -4,10 +4,6 @@
 <title>SmartSwitch en DEVICE_NAME</title>
 <meta http-equiv='refresh' content='2'; charset='UTF-8'>
 <style>
-	body{
-		height:2000px;
-		background:linear-gradient(141deg,#2cb5e8 0%,#1fc8db 51%, #0fb8ad  75%);
-	}
 	button{
 		color:white;
 		background-color:blue;
@@ -77,8 +73,7 @@
 	}
 </style>	
 </head>
-<body>
-	<button onclick='goBack()' class='buttonHome'> &#8656 Regresar a lista de dispositivos </button>		
+<body>	
 	<h1 class='textState'> DEVICE_NAME </h1>
 	<a href='forceOutputOn'> <button class='buttonON'>&#x2714;Encender</button></a>
 	<a href='forceOutputOff'><button class='buttonOff'>&#x2718;Apagar</button></a>
@@ -102,9 +97,4 @@
 	<br>
 	<a href='config'><button class='buttonHome' style='display:CONFIG_MODE;'>&#x2699; Configuraci&oacute;n avanzada ...</button></a>
 </body>
-<script>
-function goBack() {
-    window.history.back();
-}
-</script>
 </html>

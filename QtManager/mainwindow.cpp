@@ -2,6 +2,7 @@
 
 #define BROADCAST_REFRESH   1000
 #define BROADCAST_PORT      45454
+#define WEBSOCKET_PORT      1234
 #define DATE_TIME_FORMAT    "dd/MM/yyyy HH:mm:ss"
 #define TIME_FORMAT         "HH:mm:ss"
 
@@ -76,6 +77,10 @@ MainWindow::MainWindow(QWidget *parent) :
     devicesTimer = new QTimer(this);
     connect(devicesTimer, SIGNAL(timeout()), this, SLOT(queryStates()));
     devicesTimer->start(BROADCAST_REFRESH);
+
+    webSocket = new WebSocketServer(WEBSOCKET_PORT,true);
+    connect(webSocket,SIGNAL(messageArrived(QString)),this,SLOT(webSocketMessage(QString)));
+    ui->netLog->appendPlainText("***WebSocketServer running***\n");
 }
 
 void  MainWindow::initUdpSocket()
@@ -150,6 +155,7 @@ void MainWindow::queryStates()
         if(lastSeen.msecsTo(currentTime)>BROADCAST_REFRESH*3 && getStringModel(devicesModel,i,1)!="OFFLINE")
         {            
             setStringModel(devicesModel,i, 1, "OFFLINE");
+            webSocket->sendMessage(getStringModel(devicesModel,i,0)+":Offline");
             if(i==currentModelIndex)
                 setDeviceFrameEnabled();            
         }
@@ -447,6 +453,7 @@ void MainWindow::processPendingDatagrams()
                 //New device, append
                 appendDevice(hostMAC,hostAddress,hostLastSeen,hostSTT,hostCFG);
                 saveModel(devicesModel,DEVICES_FILENAME);
+                webSocket->sendMessage("HaveToReload");
             }
             else
             {
@@ -461,14 +468,13 @@ void MainWindow::processPendingDatagrams()
                     setDeviceFrameEnabled();
                     if(t_hostSTT != hostSTT)
                         updateCurrentDeviceState();
-
                     if(t_hostCFG != hostCFG)
                         updateCurrentDeviceConfig();                        
                 }
-
-                if((t_hostCFG != hostCFG)|| (t_hostAddress != hostAddress))
+                if((t_hostSTT != hostSTT)||(t_hostCFG != hostCFG)|| (t_hostAddress != hostAddress))
                 {
                     saveModel(devicesModel,DEVICES_FILENAME);
+                    webSocket->sendMessage(hostMAC+":"+getDeviceState(macIndex));
                 }
             }
 
@@ -806,7 +812,9 @@ void MainWindow::updateDevicesListHtml()
         device=deviceHtml;
 
         QString deviceIP=getStringModel(devicesModel,row,1);
+        QString deviceID=getStringModel(devicesModel,row,0);
         device.replace("DEVICE_IP",deviceIP);
+        device.replace("DEVICE_ID",deviceID);
         device.replace("DEVICE_NAME",getStringModel(devicesModel,row,4).split(':').at(2));
 
         if(deviceIP=="OFFLINE" || deviceIP=="IP CONFLICT**")
@@ -816,6 +824,7 @@ void MainWindow::updateDevicesListHtml()
         devicesList += device + "\n";
     }
 
+    devicesHtml.replace("WEBSOCKET_URI",getMyIp()+":"+QString::number(WEBSOCKET_PORT));
     devicesHtml.replace("DEVICES_LIST",devicesList);
     saveTextFile(devicesHtml,DEVICES_PAGE);
 
@@ -832,15 +841,18 @@ void MainWindow::updateDevicesListHtml()
         int indexDevicesModel= indexOfModel(devicesModel,getStringModel(configModel,row,0));
 
         QString deviceIP="UNKNOW";
+        QString deviceID="UNKNOW";
         if(indexDevicesModel!=-1)
         {
             deviceIP= getStringModel(devicesModel,indexDevicesModel,1);
+            deviceID= getStringModel(devicesModel,indexDevicesModel,0);
             plandevice.replace("DEVICE_STATE",getDeviceState(indexDevicesModel));
         }
 
         if(deviceIP=="OFFLINE" || deviceIP=="IP CONFLICT**" || deviceIP=="UNKNOW")
             plandevice.replace("DEVICE_ONLINE","disabled");
         plandevice.replace("DEVICE_IP",deviceIP);
+        plandevice.replace("DEVICE_ID",deviceID);
         plandevice.replace("DEVICE_NAME",getStringModel(configModel,row,1));
         plandevice.replace("DEVICE_WIDTH",getStringModel(configModel,row,2));
         plandevice.replace("DEVICE_HEIHT",getStringModel(configModel,row,3));
@@ -848,7 +860,7 @@ void MainWindow::updateDevicesListHtml()
 
         planList += plandevice + "\n";
     }
-
+    planHtml.replace("WEBSOCKET_URI",getMyIp()+":"+QString::number(WEBSOCKET_PORT));
     planHtml.replace("DEVICES_LIST",planList);
     saveTextFile(planHtml,PLAN_PAGE);
 }
@@ -878,4 +890,32 @@ void MainWindow::updateDelegateDevicesList()
         devicesList.append(getStringModel(devicesModel,row,0));
     }
     delegate->setItems(devicesList);
+}
+
+void MainWindow::webSocketMessage(QString message)
+{
+    ui->msgView->appendHtml("<b>" + message + "</b>");
+}
+
+void MainWindow::on_sendMsgButton_clicked()
+{
+    webSocket->sendMessage(ui->msgEdit->text());
+    ui->msgView->appendPlainText(ui->msgEdit->text());
+}
+
+QString MainWindow::getMyIp()
+{
+    foreach(const QNetworkInterface &qNetInterface, QNetworkInterface::allInterfaces())
+    {
+        foreach(const QNetworkAddressEntry &qNetInterfaceAddress, qNetInterface.addressEntries())
+        {
+            if (qNetInterfaceAddress.ip().protocol() == QAbstractSocket::IPv4Protocol
+            && qNetInterfaceAddress.ip() != QHostAddress(QHostAddress::LocalHost)
+            && qNetInterfaceAddress.netmask().toString() != "")
+            {
+                return qNetInterfaceAddress.ip().toString();
+            }
+        }
+    }
+    return NULL;
 }

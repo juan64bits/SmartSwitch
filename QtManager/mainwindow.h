@@ -10,7 +10,7 @@
 
 #include "callapp.h"
 #include "ComboBoxDelegate.h"
-
+#include "websockets.h"
 #include <QDebug>
 
 #include <QStandardItemModel>
@@ -40,6 +40,7 @@ public slots:
     void pushButton_Pin21_clicked();
 
 private slots:
+    void webSocketMessage(QString message);
     void styleChanged(const QString &styleName);
 
     void on_dial_2_valueChanged(int value);
@@ -105,6 +106,8 @@ private slots:
 
     void on_configView_doubleClicked(const QModelIndex &index);
 
+    void on_sendMsgButton_clicked();
+
 private:
     Ui::MainWindow *ui;
     callApp * appRunning;
@@ -160,12 +163,15 @@ private:
     void updateCurrentDeviceConfig();
     void deviceESP01SendCMD(QString cmd);
 
+    QString getMyIp();
+
     QString loadTextFile(QString fileName);
     int saveTextFile(QString text, QString fileName);
 
     void updateDevicesListHtml();
     void updateDelegateDevicesList();
     ComboBoxDelegate* delegate;
+    WebSocketServer * webSocket;
 };
 
 #endif // MAINWINDOW_H

@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui network
+QT       += core gui network websockets
 
 QMAKE_CFLAGS +=
 QMAKE_CXXFLAGS +=
@@ -24,11 +24,13 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     callapp.cpp \
-    ComboBoxDelegate.cpp
+    ComboBoxDelegate.cpp \
+    websockets.cpp
 
 HEADERS  += mainwindow.h \
     callapp.h \
-    ComboBoxDelegate.h
+    ComboBoxDelegate.h \
+    websockets.h
 
 FORMS    += mainwindow.ui
 

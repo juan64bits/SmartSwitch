@@ -2,7 +2,7 @@
 <html>
 <head>
 	<title>SmartSwitch</title>
-	<meta http-equiv='refresh' content='2'; charset='UTF-8'>
+	<meta charset='UTF-8'>
 </head>
 <style>
 	button{
@@ -12,7 +12,12 @@
 		border-radius: 10px;		
 		outline: none;
 		transition-duration:0.1s;
-		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);	
+		box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 12px 0 rgba(0,0,0,0.19);
+		float: right;	
+		font-size:5vw;
+		width:100%;
+		margin: 1% 0%;
+		padding: 0%;	
 	}
 	button:active {
 		background-color:darkred;
@@ -21,10 +26,11 @@
 	button:disabled {
 		background-color:antiquewhite;
 		color:azure;
+        animation: none;
 	}	
  
 	.tittles {
-		color:#2F4F4F;
+		color:white;
 		font-size:6vw;
 		text-align:center;
 	}
@@ -38,55 +44,172 @@
 		transition-duration:0.4s;
 	}
 
-	.buttonNameOn {
-		float: right;
+	.On {
 		background-color:blue;
-		font-size:5vw;
-		width:58%;
-		margin: 1% 0%;
-		padding: 0%;
 	}
 
-	.buttonNameActive {
-		float: right;
-		background-color:green;
-		font-size:5vw;
-		width:58%;
-		margin: 1% 0%;
-		padding: 0%;
-	}		
+    @keyframes activeDevice 
+    {
+        0%   {background-color: darkgreen;}
+        50%  {background-color: green;}
+        100% {background-color: darkgreen;}
+    }
+    .Active {
+        background-color:green;
+        animation: activeDevice 1s infinite;
+    }   		
 
-	.buttonNameOff {
-		float: right;
+	.Off {
 		background-color:red;
-		font-size:5vw;
-		width:58%;
-		margin: 1% 0%;
-		padding: 0%;
 	}	
-
-	.buttonON {
-		float: left;
-		background-color:blue;
-		font-size:5vw;
-		width:20%;
-		margin: 1% 0%;
-		padding: 0% ;
-	}
-	.buttonOFF {
-		float: left;
+	.hiddenMessage{
+		display:block;
 		background-color:red;
-		font-size:5vw;
-		width:20%;
-		margin: 1% 0%;
-		padding: 0% ;
+	    position: fixed;
+	    bottom: 0;
+	    right: 0;		
+		opacity: 0.85;
+		width: 100%;
+		height: 100%;
+	}
+	.reload{
+		border-radius: 20px;	
+		float: none;
+		width: 60%;
+		margin: 2% 20%;
+		padding: 5% ;
 	}	
 </style>
 <body>
+	<div id='hiddenMessage' class='hiddenMessage'>
+			<h1 class='tittles'>&#9888; <br> No hay comunicación </h1>
+            <button class='reload' onClick='initWebSocket();'>Reconectar </button>
+            <button class='reload' onClick='location.reload();'>Actualizar &orarr;</button>           
+	</div> 
 
 DEVICES_LIST
 
 		<p class='textState'> Si hay nuevos dispositivos conectados en la red apareceran en esta lista.</p>
 		<iframe style='display: none' name='hiddenFrame'></iframe>
 </body>
+<script type='text/javascript'>
+    var debugTextArea = document.getElementById('debugTextArea');
+    function debug(message) 
+    {
+        console.log( 'WebSocket|', message);
+    }
+
+    function sendMessage(message) 
+    {
+        var msg = document.getElementById('inputText').value;
+        if ( websocket != null )
+        {
+            document.getElementById('inputText').value = '';
+            websocket.send( message );
+            debug('String sent >>'+ message);
+        }
+    }
+
+    var wsUri = 'ws://WEBSOCKET_URI';
+    var websocket = null;
+    initWebSocket();
+
+    function initWebSocket() 
+    {
+        try 
+        {
+            if (typeof MozWebSocket == 'function')
+                WebSocket = MozWebSocket;
+            if ( websocket && websocket.readyState == 1 )
+                websocket.close();
+            websocket = new WebSocket( wsUri );
+            websocket.onopen = function (evt) 
+            {
+            	document.getElementById('hiddenMessage').style.display='none';
+                debug('CONNECTED');
+            };
+            websocket.onclose = function (evt)             
+            {
+            	document.getElementById('hiddenMessage').style.display='block';
+                debug('DISCONNECTED');
+            };
+            websocket.onmessage = function (evt) 
+            {
+            	debug( 'Message received: '  + evt.data);
+            	var device = evt.data.split(':'); 
+            	if(device.length==2)
+            	{
+					debug( 'ID:' + device[0] + '>> State:' + device[1] ); 
+					var elementDev = document.getElementById(device[0]);
+					if(device[1]=='Offline')
+					{
+						elementDev.disabled=true; 
+					}
+					else
+					{
+						elementDev.className = device[1]; 
+						elementDev.disabled=false; 
+					}
+					
+            	}
+                
+            };
+            websocket.onerror = function (evt) 
+            {
+                debug('ERROR: ' + evt.data);
+            };
+        } 
+        catch (exception) 
+        {
+            debug('ERROR: ' + exception);
+        }
+    }
+
+    function stopWebSocket() 
+    {
+        if (websocket)
+            websocket.close();
+    }
+
+    function checkSocket() 
+    {
+        if (websocket != null) 
+        {
+            var stateStr;
+            switch (websocket.readyState) 
+            {
+                case 0: 
+                {
+                    stateStr = 'CONNECTING';
+                    break;
+                }
+                case 1: 
+                {
+                    stateStr = 'OPEN';
+                    break;
+                }
+                case 2: 
+                {
+                    stateStr = 'CLOSING';
+                    break;
+                }
+                case 3: 
+                {
+                    stateStr = 'CLOSED';
+                    break;
+                }
+                default: 
+                {
+                    stateStr = 'UNKNOW';
+                    break;
+                }
+            }
+            debug('State = ' + websocket.readyState + ' ( ' + stateStr + ' )');
+        } 
+        else 
+        {
+            debug('Is null');
+        }
+    }
+</script>
 </html>		
