@@ -973,13 +973,14 @@ void hardwareInit()
   forceOutput(outputInit);
   
   //Enter in config mode if TX is pulled down
+  /*
   delayMicroseconds(300);
   pinMode(GPIO01_TX,INPUT);
   if(digitalRead(GPIO01_TX)==LOW)
   {
     configMode=true;
     while(digitalRead(GPIO01_TX)==LOW){}
-  }
+  }*/
 
   Serial.begin(115200,SERIAL_8N1,SERIAL_TX_ONLY);
   Serial.println();             
@@ -1163,7 +1164,9 @@ void handleOutputActiveLow(bool setTo)
     {
       if(setTo)
       {
+        //digitalWrite(OUTPUT_PIN, HIGH);
         pinMode(OUTPUT_PIN, INPUT);  //High impedance?
+        digitalWrite(OUTPUT_PIN, HIGH);
       }
       else
       {
